@@ -49,8 +49,9 @@ METRIC_KEYS = ["revenue_ttm", "operating_income_ttm", "net_income_ttm", "sector_
 
 ### 2. 측정 가능한 오분류율
 
-사람이 라벨링한 골든셋 **126종목**(`tests/golden/`)에 대해 매 실행 정밀도·재현율을
-계산한다. 라벨 규칙은 `tests/golden/LABELING.md`에 명문화돼 있다.
+미리 라벨링한 골든셋 **126종목**(`tests/golden/`)에 대해 매 실행 정밀도·재현율을
+계산한다. 라벨 규칙은 `tests/golden/LABELING.md`에 명문화돼 있고, 라벨은
+**아직 사람 검수를 거치지 않았다**(`labeled_by: assistant-bootstrap`).
 
 | 스크린 | 오분류율 | certain 라벨만 | 인용 환각률 |
 |---|---:|---:|---:|
