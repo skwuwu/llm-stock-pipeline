@@ -1,0 +1,117 @@
+# 내부 섹터 코드 (GICS-lite) + 거래소 분류 매핑
+# KRX 업종과 TSE 33업종은 체계가 달라 직접 비교 불가 → 내부 코드로 정규화한다.
+version: 1
+
+codes:
+  ENERGY:              {ko: 에너지·정유,        jp: 石油・石炭}
+  CHEM:                {ko: 화학,              jp: 化学}
+  STEEL_METAL:         {ko: 철강·비철,          jp: 鉄鋼・非鉄}
+  NONMETAL_MIN:        {ko: 비금속광물,         jp: ガラス・土石}
+  PAPER_WOOD:          {ko: 종이·목재,          jp: パルプ・紙}
+  TEXTILE_APPAREL:     {ko: 섬유·의복,          jp: 繊維製品}
+  FOOD_BEV:            {ko: 음식료,             jp: 食料品}
+  PHARMA_BIO:          {ko: 제약·바이오,        jp: 医薬品}
+  MACHINERY:           {ko: 기계,               jp: 機械}
+  ELEC_EQUIP:          {ko: 전기장비,           jp: 電気機器}
+  SEMI:                {ko: 반도체,             jp: 電気機器}
+  DISPLAY:             {ko: 디스플레이,         jp: 電気機器}
+  ELECTRONIC_COMP:     {ko: 전자부품,           jp: 電気機器}
+  AUTO:                {ko: 자동차·부품,        jp: 輸送用機器}
+  SHIPBUILD:           {ko: 조선·기자재,        jp: 輸送用機器}
+  AEROSPACE_DEFENSE:   {ko: 항공우주·방산,      jp: 輸送用機器}
+  CONSTRUCTION:        {ko: 건설,               jp: 建設業}
+  TRANSPORT_LOGISTICS: {ko: 운수·창고,          jp: 海運業・陸運業}
+  UTILITIES:           {ko: 전기가스,           jp: 電気・ガス業}
+  TRADING_DISTRIB:     {ko: 종합상사·도매,      jp: 卸売業}
+  RETAIL:              {ko: 유통·소매,          jp: 小売業}
+  MEDIA_ENT:           {ko: 미디어·엔터,        jp: 情報・通信業}
+  TELECOM:             {ko: 통신,               jp: 情報・通信業}
+  IT_SERVICES:         {ko: IT서비스·SW,        jp: 情報・通信業}
+  BANK:                {ko: 은행,               jp: 銀行業}
+  SECURITIES:          {ko: 증권,               jp: 証券・商品先物}
+  INSURANCE:           {ko: 보험,               jp: 保険業}
+  OTHER_FIN:           {ko: 기타금융·캐피탈,    jp: その他金融業}
+  HOLDING:             {ko: 지주회사,           jp: その他}
+  REAL_ESTATE:         {ko: 부동산·리츠,        jp: 不動産業}
+  HEALTHCARE_SVC:      {ko: 의료기기·서비스,    jp: 精密機器}
+  LEISURE_TRAVEL:      {ko: 여행·레저,          jp: サービス業}
+  # KIND 업종(KSIC 기반) 도입 시 추가. 기존 코드에 억지로 매핑하면
+  # V2 섹터 정합성 검증이 오염되므로 별도 코드로 둔다.
+  EDUCATION:           {ko: 교육,               jp: サービス業}
+  BUSINESS_SVC:        {ko: 사업·전문서비스,     jp: サービス業}
+  OTHER_MFG:           {ko: 기타 제조,          jp: その他製品}
+
+# KRX 업종명 → 내부 코드. 미매핑은 정규화 단계에서 unmapped_sector 플래그.
+krx_map:
+  음식료품: FOOD_BEV
+  섬유의복: TEXTILE_APPAREL
+  종이목재: PAPER_WOOD
+  화학: CHEM
+  의약품: PHARMA_BIO
+  비금속광물: NONMETAL_MIN
+  철강금속: STEEL_METAL
+  기계: MACHINERY
+  전기전자: ELECTRONIC_COMP        # 반도체/디스플레이는 세부 재분류 필요(아래 override)
+  의료정밀: HEALTHCARE_SVC
+  운수장비: AUTO
+  유통업: RETAIL
+  전기가스업: UTILITIES
+  건설업: CONSTRUCTION
+  운수창고업: TRANSPORT_LOGISTICS
+  통신업: TELECOM
+  금융업: OTHER_FIN
+  은행: BANK
+  증권: SECURITIES
+  보험: INSURANCE
+  서비스업: IT_SERVICES
+
+# KRX 대분류가 뭉뚱그린 종목의 수동 재분류. 티커 단위 override.
+# 전기전자(→SEMI/DISPLAY), 운수장비(→SHIPBUILD/AEROSPACE_DEFENSE) 분리가 핵심.
+ticker_overrides:
+  "005930": SEMI          # 삼성전자
+  "000660": SEMI          # SK하이닉스
+  "009150": ELECTRONIC_COMP
+  "042700": SEMI          # 한미반도체
+  "034020": MACHINERY     # 두산에너빌리티
+  "042660": SHIPBUILD     # 한화오션
+  "010140": SHIPBUILD     # 삼성중공업
+  "329180": SHIPBUILD     # HD현대중공업
+  "012450": AEROSPACE_DEFENSE   # 한화에어로스페이스
+  "047810": AEROSPACE_DEFENSE   # 한국항공우주
+  "064350": MACHINERY     # 현대로템
+
+# TSE 33업種 → 내부 코드 (M2 이후 JP 확장 시 사용)
+tse_map:
+  石油・石炭製品: ENERGY
+  化学: CHEM
+  鉄鋼: STEEL_METAL
+  非鉄金属: STEEL_METAL
+  ガラス・土石製品: NONMETAL_MIN
+  パルプ・紙: PAPER_WOOD
+  繊維製品: TEXTILE_APPAREL
+  食料品: FOOD_BEV
+  医薬品: PHARMA_BIO
+  機械: MACHINERY
+  電気機器: ELEC_EQUIP
+  輸送用機器: AUTO
+  精密機器: HEALTHCARE_SVC
+  建設業: CONSTRUCTION
+  海運業: TRANSPORT_LOGISTICS
+  陸運業: TRANSPORT_LOGISTICS
+  倉庫・運輸関連業: TRANSPORT_LOGISTICS
+  電気・ガス業: UTILITIES
+  卸売業: TRADING_DISTRIB
+  小売業: RETAIL
+  情報・通信業: IT_SERVICES
+  銀行業: BANK
+  証券・商品先物取引業: SECURITIES
+  保険業: INSURANCE
+  その他金融業: OTHER_FIN
+  不動産業: REAL_ESTATE
+  サービス業: LEISURE_TRAVEL
+  金属製品: STEEL_METAL
+  ゴム製品: CHEM
+  鉱業: ENERGY
+  水産・農林業: FOOD_BEV
+  空運業: TRANSPORT_LOGISTICS
+  その他製品: ELECTRONIC_COMP

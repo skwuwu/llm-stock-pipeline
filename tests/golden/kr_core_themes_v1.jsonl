@@ -1,0 +1,63 @@
+{"_meta": "골든셋 v2 (2026-08-07) — 2026-08-06 스크린 통과 62종목. 라벨링 규칙은 tests/golden/LABELING.md 참조. core = 매출 30% 이상이면서 손익의 주된 동인인 테마만. labeled_by=assistant-bootstrap, 사람 검수 전. confidence=contested 는 사람에 따라 판정이 갈릴 수 있는 라벨이며 지표에서 빼지 않되 certain-only 를 함께 보고한다. v1 대비: taxonomy v1.1 의 신설 테마 7개로 빈 라벨 18→2, 케이씨티시 재분류, contested 9건 표시."}
+{"ticker": "000120", "name": "CJ대한통운", "core": ["logistics_3pl"], "confidence": "certain", "note": "CL 27% + 택배 30% + 글로벌 35% = 물류 92% (매출실적표). 선박을 직접 운항하지 않으므로 shipping_freight 아님"}
+{"ticker": "000850", "name": "화천기공", "core": ["industrial_machinery"], "confidence": "certain", "note": "공작기계 84% (서술문 '기계사업부문은 연결매출의 83.6%')"}
+{"ticker": "002140", "name": "고려산업", "core": ["food_beverage_domestic"], "confidence": "certain", "note": "가축용 배합사료 95% (서술문)"}
+{"ticker": "002230", "name": "피에스텍", "core": ["power_cable_grid"], "confidence": "certain", "note": "전력기기(전력량계·AMI) 65% + 신재생 24% (매출실적표). v1.1 에서 power_cable_grid inclusion 에 전력량계·AMI·배전자동화를 추가 — 송배전망 투자 예산에서 집행되는 같은 사이클"}
+{"ticker": "002350", "name": "넥센타이어", "core": ["auto_parts"], "confidence": "certain", "note": "타이어부문 96% (매출실적표 소계)"}
+{"ticker": "002900", "name": "TYM", "core": ["industrial_machinery"], "confidence": "contested", "note": "농기계사업부 91% (매출실적표). 갈리는 이유: industrial_machinery 의 inclusion 은 '머시닝센터·굴착기·지게차·산업용 로봇'으로 설비투자 사이클을 상정하는데, 농기계의 수요 동인은 농가 소득·보조금이라 다르다. 사전에 농업기계 칸이 없어 차선으로 배정"}
+{"ticker": "003650", "name": "미창석유공업", "core": ["chemical_refining"], "confidence": "certain", "note": "윤활유 73% + 전기절연유 4% (비율표). inclusion 의 '정밀화학'에 해당"}
+{"ticker": "004490", "name": "세방전지", "core": ["auto_parts"], "confidence": "certain", "note": "납축전지 85% (서술문). ev_battery_materials 는 '4대 소재' 공급자를 뜻하므로 완제 배터리는 해당 없음"}
+{"ticker": "004960", "name": "한신공영", "core": ["construction_materials"], "confidence": "certain", "note": "종합건설(아파트·토목) 단일 주력"}
+{"ticker": "004980", "name": "성신양회", "core": ["construction_materials"], "confidence": "certain", "note": "시멘트 54% + 레미콘 12% (서술문과 매출실적표 일치)"}
+{"ticker": "005880", "name": "대한해운", "core": ["shipping_freight"], "confidence": "certain", "note": "벌크선 50% + LNG선 25% + 탱커 4% (비율표). 선박을 직접 운항하는 운송인"}
+{"ticker": "006650", "name": "대한유화", "core": ["chemical_refining"], "confidence": "certain", "note": "석유화학 45% + 폴리머 39% (비율표). NCC 기초유분"}
+{"ticker": "006730", "name": "서부T&D", "core": ["travel_leisure"], "confidence": "contested", "note": "관광호텔 37% / 임대및기타 54% / 쇼핑몰 8% (매출실적표). 갈리는 이유: 비중 최대는 부동산 임대인데 사전에 부동산 임대 테마가 없다. 호텔이 37% 로 하한은 넘지만 '주된 동인'인지는 이견 가능"}
+{"ticker": "008490", "name": "서흥", "core": ["pharma_api_cmo"], "confidence": "certain", "note": "캡슐 32% + 건강기능식품 40% + 원료 17% (비율표). 하드캡슐·의약품 전공정 수탁 = CDMO"}
+{"ticker": "009070", "name": "케이씨티시", "core": ["logistics_3pl"], "confidence": "certain", "note": "운송 32% + 중량물 22% + CFS 3% + CY 1% 대비 하역은 8% (비율표). v1 에서 shipping_freight 로 뒀으나 하역 비중이 작고 선박을 운항하지 않아 v2 에서 재분류"}
+{"ticker": "009900", "name": "명신산업", "core": ["auto_parts"], "confidence": "certain", "note": "핫스탬핑 차체부품 단일 사업"}
+{"ticker": "010780", "name": "아이에스동서", "core": ["construction_materials", "recycling_environment"], "confidence": "certain", "note": "건설 36% + 콘크리트 22% = 58%, 환경 29% + 폐배터리 10% = 39% (비율표). R5 에 따라 둘 다 core"}
+{"ticker": "010960", "name": "삼호개발", "core": ["construction_materials"], "confidence": "certain", "note": "건설(토공) 95% (비율표)"}
+{"ticker": "015760", "name": "한국전력공사", "core": ["telecom_utility_yield"], "confidence": "certain", "note": "전기판매. 요금이 규제되는 전력 공급"}
+{"ticker": "016380", "name": "KG스틸", "core": ["steel_nonferrous"], "confidence": "certain", "note": "철강부문(냉연·아연도·석도강판)이 압도적. 단순 유통이 아니라 표면처리 제조"}
+{"ticker": "017940", "name": "E1", "core": ["lpg_gas_distribution"], "confidence": "certain", "note": "LPG 수입·저장·유통. v1.1 신설 테마. 요금 규제 대상이 아니라 도입원가-판가 스프레드가 동인이므로 telecom_utility_yield 아님"}
+{"ticker": "018670", "name": "SK가스", "core": ["lpg_gas_distribution"], "confidence": "certain", "note": "가스사업(LPG 판매) 90% (매출실적표). v1 에서 telecom_utility_yield 오배정이 오탐으로 잡혔던 종목 — 이제 정확한 칸이 있다"}
+{"ticker": "019180", "name": "티에이치엔", "core": ["auto_parts"], "confidence": "certain", "note": "자동차용 와이어하네스 단일 사업부문"}
+{"ticker": "019540", "name": "일지테크", "core": ["auto_parts"], "confidence": "certain", "note": "자동차 차체부품 단일 주력"}
+{"ticker": "020000", "name": "한섬", "core": ["apparel_textile"], "confidence": "certain", "note": "제조도소매(의류) 100% (매출실적표, 단일 사업부문)"}
+{"ticker": "025540", "name": "한국단자공업", "core": ["auto_parts"], "confidence": "contested", "note": "자동차용 커넥터. 갈리는 이유: auto_electrification 의 inclusion 이 '차량용 반도체·MLCC' 등 전장 부품을 포함해 커넥터도 전장으로 볼 여지가 있다. 내연·전기차 공용 부품이라 auto_parts 로 뒀다"}
+{"ticker": "027710", "name": "팜스토리", "core": ["food_beverage_domestic"], "confidence": "certain", "note": "사료 50% + 육가공 25% + 양돈 11% (비율표)"}
+{"ticker": "033270", "name": "유나이티드", "core": ["pharma_api_cmo"], "confidence": "contested", "note": "개량신약·제네릭 제조. 갈리는 이유: pharma_api_cmo 는 '원료의약품(API) 및 위탁생산(CMO/CDMO)'을 뜻하는데 유나이티드는 자사 브랜드 완제의약품이 주력이다. 사전에 완제 제약 칸이 없어 차선으로 배정"}
+{"ticker": "035000", "name": "HS애드", "core": ["advertising_marketing"], "confidence": "certain", "note": "종합광고대행 단일 사업. v1.1 신설 테마 — media_content_ip 가 광고대행을 제외하고 있어 v1 에서는 빈 라벨이었다"}
+{"ticker": "035600", "name": "KG이니시스", "core": ["payments_fintech"], "confidence": "certain", "note": "PG(전자지불결제대행). v1.1 신설 테마"}
+{"ticker": "035610", "name": "솔본", "core": [], "confidence": "certain", "note": "지주회사. holdco_discount 는 derivation=quantitative 라 LLM 판정 대상이 아니다 — 설계상 빈 라벨이 맞다"}
+{"ticker": "035890", "name": "서희건설", "core": ["construction_materials"], "confidence": "certain", "note": "지역주택조합 아파트 도급"}
+{"ticker": "037350", "name": "성도이엔지", "core": ["construction_materials"], "confidence": "contested", "note": "종합건설시공 38~51% + 하이테크산업설비 26~38% (비율표, 연도별 변동). 갈리는 이유: 하이테크 설비는 반도체·디스플레이 팹 시공이라 그쪽 사이클을 타는데, semi_materials_parts 는 '반도체 고객사가 있다는 사실만으로 배정 금지'에 걸린다"}
+{"ticker": "037710", "name": "광주신세계", "core": ["retail_distribution"], "confidence": "certain", "note": "백화점 단일 사업"}
+{"ticker": "041910", "name": "폴라리스AI파마", "core": ["pharma_api_cmo"], "confidence": "certain", "note": "API 및 CDMO 22% + 완제 제네릭. inclusion 에 직접 해당"}
+{"ticker": "043150", "name": "바텍", "core": ["medical_devices"], "confidence": "certain", "note": "3D진단장비 62% + 구강내진단장비 10% (비율표). v1.1 신설 테마"}
+{"ticker": "044450", "name": "KSS해운", "core": ["shipping_freight"], "confidence": "certain", "note": "해운업 86% (매출실적표). GAS·PRODUCT·CHEMICAL 선박 직접 운항"}
+{"ticker": "046440", "name": "KG파이낸셜", "core": ["payments_fintech"], "confidence": "certain", "note": "전자지불결제 지주. 결제부문이 주력"}
+{"ticker": "046940", "name": "우원개발", "core": ["construction_materials"], "confidence": "certain", "note": "토공사업 99.8% (매출실적표, 사실상 단일 사업)"}
+{"ticker": "049430", "name": "코메론", "core": [], "confidence": "certain", "note": "줄자 94% (서술문). 수공구는 사전에 칸이 없다 — industrial_machinery 는 설비투자 사이클이고 줄자의 동인은 건설·DIY 수요라 다르다. R4 에 따라 빈 라벨"}
+{"ticker": "051360", "name": "토비스", "core": ["auto_electrification"], "confidence": "contested", "note": "전장용 디스플레이 소계 350,681 > 산업용 모니터 257,549 (매출실적표, 전장 약 58%). 갈리는 이유: 차량용 디스플레이를 전장(auto_electrification)으로 볼지 디스플레이 부품(display_equipment_parts)으로 볼지 경계가 겹친다. 최종 고객이 완성차라 전장으로 뒀다"}
+{"ticker": "066700", "name": "테라젠이텍스", "core": ["pharma_api_cmo"], "confidence": "contested", "note": "의약품 98% (매출실적표). 갈리는 이유: 유나이티드와 동일 — 완제 제네릭 제조인데 사전에는 API/CMO 칸만 있다"}
+{"ticker": "077500", "name": "유니퀘스트", "core": ["trading_house"], "confidence": "contested", "note": "상품매출 98% (반도체 유통 대리점). 갈리는 이유: trading_house 는 '종합상사'를 뜻하고 v1.1 에서 반도체·전자부품 유통을 inclusion 에 추가했으나, 자원개발·프로젝트 오거나이징이 없는 단일 품목 유통사라 성격이 다르다"}
+{"ticker": "078150", "name": "HB테크놀러지", "core": ["display_equipment_parts"], "confidence": "certain", "note": "부품소재 46% + 장비 38% = 디스플레이 84% (비율표). v1.1 신설 테마"}
+{"ticker": "079960", "name": "동양이엔피", "core": ["power_semiconductor"], "confidence": "contested", "note": "SMPS 등 100% (매출실적표, 단일 사업부문). 갈리는 이유: power_semiconductor 의 inclusion 은 'SiC 웨이퍼·에피, 전력반도체 패키징, 인버터/컨버터 모듈'인데 SMPS 는 AC-DC 컨버터 모듈이라 소자가 아니다. 사전에 전원공급장치 칸이 없어 차선으로 배정"}
+{"ticker": "085670", "name": "뉴프렉스", "core": ["display_equipment_parts"], "confidence": "certain", "note": "모바일용 FPCB. v1.1 신설 테마 inclusion 에 FPCB 명시"}
+{"ticker": "088130", "name": "동아엘텍", "core": ["display_equipment_parts"], "confidence": "certain", "note": "OLED제조장비 89% + 디스플레이검사장비 11% (비율표)"}
+{"ticker": "089470", "name": "HDC현대EP", "core": ["chemical_refining"], "confidence": "certain", "note": "PO 66% + PS 31% (서술문). 합성수지 제조"}
+{"ticker": "090460", "name": "비에이치", "core": ["display_equipment_parts"], "confidence": "certain", "note": "모바일 FPCB 주력. v1.1 신설 테마"}
+{"ticker": "093050", "name": "LF", "core": ["apparel_textile"], "confidence": "certain", "note": "패션 72% + 금융 10% + 식품 17% (비율표)"}
+{"ticker": "094970", "name": "제이엠티", "core": ["display_equipment_parts"], "confidence": "certain", "note": "전자부품(디스플레이 PBA/FPBA) 58% (매출실적표). 나머지는 기록매체 14% + 생활건강 17% + 자동차내장 10% 로 각각 하한 미달"}
+{"ticker": "095570", "name": "AJ네트웍스", "core": ["rental_leasing"], "confidence": "certain", "note": "파렛트·IT기기·고소장비 렌탈. v1.1 신설 테마"}
+{"ticker": "095660", "name": "네오위즈", "core": ["game_publishing"], "confidence": "certain", "note": "게임사업 87% (매출실적표)"}
+{"ticker": "117580", "name": "대성에너지", "core": ["telecom_utility_yield"], "confidence": "certain", "note": "도시가스 97% 이상 (서술문). 요금이 규제되는 소매라 lpg_gas_distribution 아님"}
+{"ticker": "123410", "name": "코리아에프티", "core": ["auto_parts"], "confidence": "certain", "note": "카본캐니스터·필러넥 등 연료계통 부품. 내연기관 계통이라 auto_electrification 아님"}
+{"ticker": "136490", "name": "선진", "core": ["food_beverage_domestic"], "confidence": "certain", "note": "배합사료 43% + 식육 23% + 양돈 17% + 육가공 13% (서술문)"}
+{"ticker": "187870", "name": "디바이스", "core": ["semi_materials_parts"], "confidence": "contested", "note": "오염제어 99.7% (비율표) — 단일 세그먼트다. 갈리는 이유: 이 사업에 반도체 FOUP 세정과 OLED 마스크 세정이 **함께** 들어 있는데 세그먼트가 쪼개져 있지 않아 어느 쪽이 주력인지 수치로 가를 수 없다. 회사는 OLED 마스크 세정기 점유율 90%를 내세운다. R5(각 사업이 독립적으로 하한 초과)를 확인할 수 없어 복수 core 로 두지 않고 반도체 쪽만 남겼다"}
+{"ticker": "194370", "name": "제이에스코퍼레이션", "core": ["apparel_textile"], "confidence": "certain", "note": "의류 72% + 핸드백 28% (매출실적표). 둘 다 apparel_textile"}
+{"ticker": "210540", "name": "디와이파워", "core": ["industrial_machinery"], "confidence": "certain", "note": "유압기기 100% (매출실적표, 단일 사업부문). 건설중장비용 유압실린더"}
+{"ticker": "214320", "name": "이노션", "core": ["advertising_marketing"], "confidence": "certain", "note": "광고대행 단일 사업. v1.1 신설 테마"}
+{"ticker": "248170", "name": "샘표식품", "core": ["food_beverage_domestic"], "confidence": "certain", "note": "장류 등 식품 제조. 내수 소비재"}
+{"ticker": "475430", "name": "키스트론", "core": ["power_cable_grid"], "confidence": "certain", "note": "제조사업부문(동복강선 등 전선·케이블용 도체) 100% (매출실적표). 사전 keywords 에 '동복강선' 명시"}

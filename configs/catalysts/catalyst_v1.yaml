@@ -1,0 +1,244 @@
+# 촉매 카탈로그 v1 — **닫힌 목록이다.**
+#
+# 촉매는 테마와 근본적으로 다르다:
+#   테마   상태. "화천기공은 공작기계 회사다"        → 시효 없음
+#   촉매   사건. "7월에 자사주 430억 취득 결정했다"   → 반드시 만료된다
+# 스키마에 시효가 없으면 6개월 전 뉴스가 오늘의 촉매로 계속 뜬다.
+#
+# ── 설계 원칙 ────────────────────────────────────────────────────────
+# 1. **촉매 = 공시된 사실.** "AI 수요 수혜" 같은 전망은 촉매가 아니다.
+#    대조할 원문이 없으면 환각률을 잴 수 없고, 그러면 이 시스템의 유일한
+#    자산이 사라진다. 테마 라벨링의 R2("비슷하니까로 넣지 않는다")와 같은 규율.
+#
+# 2. **공시 유형이 촉매 종류를 정한다. LLM 이 추론하지 않는다.**
+#    kind 는 report_nm 패턴 매칭으로 결정되고, LLM 은 그 안의 인용문과
+#    40자 논거만 쓴다 — 추출기이지 판단기가 아니다.
+#
+# 3. **역촉매를 같은 파이프라인에서 뽑는다.** 별도 레이어로 만들면
+#    '촉매만 찾는 편향'이 생긴다. 실측(2026-07-20~08-07): 주요사항보고
+#    535건 중 **222건(41%)이 유상증자·CB** 였다. 촉매만 보는 시스템은
+#    가장 빈번한 신호를 통째로 놓친다.
+#
+# ── 실측 빈도 (2026-07-20 ~ 08-07, 19일) ─────────────────────────────
+#   pblntf_ty=B 주요사항보고  535건
+#   pblntf_ty=I 거래소공시  3,171건  → 연 약 6만 건, 연 700 API 호출
+version: 1
+market: KR
+
+# ⚠ magnitude.min 은 **버리는 기준이 아니라 신뢰도 체크(material)의 임계다.**
+#   시총 0.5% 자사주도 일어난 사실이다. 조용히 버리면 '작았다'와 '없었다'가
+#   같아진다 — 만료 촉매를 chk_not_expired 로 남기는 것과 같은 규율이다.
+#   **버리는 것은 크기를 아예 모르는 경우뿐이다**(magnitude is None).
+#   그건 순위를 매길 수 없어서지, 작아서가 아니다.
+#
+# report_nm 정규화 규칙. 이걸 먼저 적용한 뒤 패턴을 맞춘다.
+#   "[기재정정]주요사항보고서(자기주식취득결정)" → "주요사항보고서(자기주식취득결정)"
+# 정정 여부는 버리지 않고 is_amendment 로 따로 남긴다 — 정정은 적대적
+# 검증의 첫 번째 체크(뒤집혔나)에 쓰인다.
+normalize:
+  amendment_prefix: '^\[(기재정정|첨부정정|첨부추가|연장결정|정정명령부과|변경등록)\]'
+
+catalysts:
+  # ── 촉매 ───────────────────────────────────────────────────────────
+  - id: C1
+    name: 자사주 취득·소각
+    polarity: positive
+    enabled: true
+    # 실측 70건/19일. treasury_ratio(잔액)는 이미 있지만 그건 '보유'이고
+    # 이건 '지금 사고 있다'는 사건이다 — 완전히 다른 신호다.
+    pblntf_ty: [B]
+    patterns:
+      - '주요사항보고서\(자기주식취득결정\)'
+      - '주요사항보고서\(자기주식취득신탁계약체결결정\)'
+      - '주요사항보고서\(자기주식소각결정\)'
+    magnitude:
+      field: 취득금액          # 구조화 API tsstkAqDecsn 에서 뽑는다
+      denominator: market_cap_used
+      min: 0.01              # 유의성 임계 — **필터가 아니라 체크다**(아래 주석)
+    expires_days: 180
+
+  - id: C2
+    name: 대형 수주
+    polarity: positive
+    enabled: true
+    # 금액·계약기간이 공시에 숫자로 박혀 있어 grounding 이 가장 깔끔하다.
+    pblntf_ty: [I]
+    patterns:
+      - '단일판매ㆍ공급계약체결'
+      - '단일판매·공급계약체결'
+    magnitude:
+      field: 매출액대비            # 공시가 이미 '매출액 대비(%)' 를 계산해 준다
+      # **null 이다.** 추출값이 이미 비율이라 또 나누면 0 이 된다(실측: 전 건 0%).
+      # DART 가 쓰는 분모(최근 매출액, 별도기준)를 우리 revenue_ttm(연결)으로
+      # 바꾸면 별도/연결이 어긋나므로, 공시 계산을 그대로 신뢰한다.
+      denominator: null
+      min: 0.05
+    # 계약종료일이 공시에 있으면 그것을, 없으면 이 값을 쓴다.
+    expires_field: 계약종료일
+    expires_days: 365
+
+  - id: C3
+    name: 실적 서프라이즈
+    polarity: positive
+    enabled: true
+    # 이미 있는 op_growth_q 와 교차검증이 된다. 공시와 우리 계산이 어긋나면
+    # 그 자체가 신호다(둘 중 하나가 틀렸다는 뜻).
+    pblntf_ty: [I]
+    patterns:
+      - '연결재무제표기준영업\(잠정\)'
+      - '영업\(잠정\)'
+      - '매출액또는손익구조.*변[동경]'
+    magnitude:
+      # **증가율이 아니라 증가액을 쓴다.** 전년 동기 영업이익이 작으면 증가율이
+      # 폭주해 랭킹이 오염된다 — 실측에서 상위가 전부 그런 종목이었다
+      # (해성디에스 2,995% / 펄어비스 2,597%). 증가액을 시총으로 나누면
+      # 그 왜곡이 자동으로 사라진다: 작은 기저에서 나온 큰 % 는 작은 값이 된다.
+      field: 영업이익증가액
+      denominator: market_cap_used
+      min: 0.01               # 증가액이 시총의 1% 이상
+    expires_days: 90
+
+  - id: C4
+    name: 배당 정책 변경
+    polarity: positive
+    enabled: false            # 파이프라인 검증 후 켠다
+    pblntf_ty: [I]
+    patterns: ['현금ㆍ현물배당결정', '현금·현물배당결정']
+    magnitude: {field: 주당배당금, denominator: close, min: 0.01}
+    expires_days: 365
+
+  - id: C5
+    name: 밸류업 계획
+    polarity: positive
+    enabled: false
+    pblntf_ty: [I]
+    patterns: ['기업가치제고계획']
+    magnitude: null           # 정성. 목표 ROE·환원율 명시 여부로 판정
+    expires_days: 365
+
+  - id: C6
+    name: 증설 투자
+    polarity: positive
+    enabled: false
+    pblntf_ty: [I, B]
+    patterns: ['신규시설투자등', '주요사항보고서\(유형자산양수결정\)', '비유동자산취득결정']
+    magnitude: {field: 투자금액, denominator: assets, min: 0.05}
+    expires_days: 540
+
+  - id: C7
+    name: 지배구조 개편
+    polarity: positive
+    enabled: false
+    pblntf_ty: [B]
+    patterns:
+      - '주요사항보고서\(회사합병결정\)'
+      - '주요사항보고서\(회사분할결정\)'
+      - '주요사항보고서\(영업양수결정\)'
+      - '회사합병결정'
+      - '회사분할결정'
+    magnitude: null
+    expires_days: 365
+
+  - id: C8
+    name: 소송·규제 해소
+    polarity: positive
+    enabled: false
+    pblntf_ty: [B]
+    patterns: ['주요사항보고서\(소송등의제기\)']
+    magnitude: {field: 청구금액, denominator: equity_controlling, min: 0.05}
+    expires_days: 730
+
+  # ── 역촉매 ─────────────────────────────────────────────────────────
+  - id: X1
+    name: 지분 희석
+    polarity: negative
+    enabled: true
+    # **빈도 1위.** 19일간 222건 — 주요사항보고의 41% 다.
+    # 무상증자는 희석이 아니므로 패턴에서 뺀다(주식수는 늘지만 지분율 불변).
+    pblntf_ty: [B]
+    patterns:
+      - '주요사항보고서\(유상증자결정\)'
+      - '주요사항보고서\(전환사채권발행결정\)'
+      - '주요사항보고서\(신주인수권부사채권발행결정\)'
+      - '주요사항보고서\(교환사채권발행결정\)'
+      - '^유상증자결정$'
+    magnitude:
+      field: 발행금액
+      denominator: market_cap_used
+      min: 0.03
+    expires_days: 365
+
+  - id: X2
+    name: 자사주 처분
+    polarity: negative
+    enabled: false
+    # C1 과 짝이다. C1 뒤에 X2 가 오면 '취득 후 되팔았다'로 C1 을 무효화한다 —
+    # 적대적 검증의 '반대 방향 공시' 체크가 이걸 쓴다.
+    pblntf_ty: [B]
+    patterns:
+      - '주요사항보고서\(자기주식처분결정\)'
+      - '주요사항보고서\(자기주식취득신탁계약해지결정\)'
+    magnitude: {field: 처분금액, denominator: market_cap_used, min: 0.01}
+    expires_days: 180
+
+  - id: X3
+    name: 감자·영업정지
+    polarity: negative
+    enabled: false
+    pblntf_ty: [B]
+    patterns: ['주요사항보고서\(감자결정\)', '^감자결정$', '주요사항보고서\(영업정지\)']
+    magnitude: null
+    expires_days: 365
+
+  - id: X4
+    name: 채무보증·담보제공
+    polarity: negative
+    enabled: false
+    pblntf_ty: [B, I]
+    patterns: ['타인을위한채무보증결정', '타인을위한담보제공결정', '타인에대한채무보증결정']
+    magnitude: {field: 보증금액, denominator: equity_controlling, min: 0.10}
+    expires_days: 365
+
+# ── 촉매가 **아닌** 것 ───────────────────────────────────────────────
+# 명시해 두지 않으면 나중에 슬금슬금 들어온다. 실측에서 빈도가 높아
+# 특히 유혹적인 것들이다.
+excluded:
+  - name: 기업설명회
+    why: 이벤트가 아니라 커뮤니케이션이다. IR 을 연다고 사업이 바뀌지 않는다
+  - name: 기타시장안내
+    why: 내용이 정해져 있지 않아 유형으로 묶을 수 없다
+  - name: 조회공시요구
+    why: 거래소의 질문이지 회사의 사건이 아니다
+  - name: 풍문또는보도에대한해명
+    why: 해명은 소문의 존재를 확인할 뿐 사실을 만들지 않는다
+  - name: 주주총회소집결의
+    why: 절차. 안건이 촉매면 그 안건 공시를 잡는다
+  - name: 주주명부폐쇄기간또는기준일설정
+    why: 절차
+  - name: 최대주주등소유주식변동신고서
+    why: >
+      지분 변동은 사건의 **결과**다. 원인(상속·담보·장내매수)이 공시에
+      드러나지 않아 방향을 판정할 수 없다. 켜려면 별도 파서가 필요하다
+  - name: 매크로·업황 서사
+    why: >
+      앵커 공시가 없다. "전력망 쇼티지 수혜" 를 촉매로 허용하는 순간
+      대조할 원문이 사라지고 환각률 측정이 불가능해진다
+
+# ── 신뢰도 = 정수 ────────────────────────────────────────────────────
+# **LLM 자기신고 confidence 를 쓰지 않는다.** 직전 리팩터에서 등급 체계를
+# 없앤 이유가 그것이었다 — 모델이 매긴 소수점이 순위를 정하면 재실행마다
+# 순위가 바뀐다(실측 판정 일치율 81%).
+# 아래 여섯은 전부 데이터 조회로 판정된다. 그래서 재현된다.
+confidence_checks:
+  - id: grounded
+    what: evidence_quote 가 공시 원문에 있다 (기존 V1 재사용)
+  - id: not_amended
+    what: 같은 건에 대한 [기재정정] 후속 공시가 없다
+  - id: not_expired
+    what: expires_at >= as_of
+  - id: material
+    what: magnitude >= 해당 촉매의 min
+  - id: no_reversal
+    what: 반대 극성 촉매가 더 최근에 없다 (C1 뒤의 X2 등)
+  - id: numbers_agree
+    what: 우리 파생지표와 방향이 맞다 (C3 인데 op_growth_q < 0 이면 실패)

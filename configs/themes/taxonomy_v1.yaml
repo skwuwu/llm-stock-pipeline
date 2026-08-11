@@ -1,0 +1,648 @@
+# 투자 테마 사전 v1 — LLM은 이 사전에서만 테마를 고를 수 있다.
+# 신규 테마는 proposed_new_theme 로 제안만 가능하고, 사람이 승인해야 v2에 편입된다.
+#
+# 필드 규약
+#   id                     : snake_case, 불변. 성과 시계열의 조인 키.
+#   derivation             : llm | quantitative
+#                            quantitative = 재무지표로 결정론적 판정, LLM에 묻지 않는다.
+#   axis                   : structural(구조·정책) | cyclical(경기) | secular(구조적 성장)
+#   definition             : LLM이 읽는 판별 기준. "무엇이 이 테마인가"를 배타적으로 서술.
+#   inclusion / exclusion  : 경계 사례. exclusion이 테마 편승 오탐을 막는 핵심 필드.
+#   keywords               : Stage-0 무료 사전필터용. 재현율 우선(정밀도는 LLM이 담당).
+#   allowed_sectors        : V2 섹터 정합성 검증용. 여기 없으면 sector_conflict 플래그.
+#   core_revenue_share_min : V3 세그먼트 검증용. 실제 매출 비중이 이 미만이면 core 불가.
+version: "1.2.0"
+market_scope: [KR, JP]
+
+themes:
+
+  # ── 정책 · 거버넌스 ────────────────────────────────────────────
+  - id: value_up_governance
+    name_ko: 밸류업·주주환원
+    derivation: llm
+    axis: structural
+    definition: >
+      기업가치 제고 계획 공시, 배당 확대·자사주 매입/소각 등 자본배치 정책 변화로
+      할인 해소가 기대되는 종목.
+    inclusion: 기업가치제고계획 공시, 배당성향 상향 발표, 자사주 소각 결의
+    exclusion: >
+      단순히 배당수익률이 높기만 한 종목은 제외. 정책 '변화'의 근거 공시가 있어야 한다.
+      과거 배당 이력만으로 배정 금지.
+    keywords: [기업가치제고, 밸류업, 자사주, 소각, 배당성향, 주주환원, 자본효율, ROE제고]
+    allowed_sectors: ANY
+    core_revenue_share_min: null   # 재무정책 테마 — 매출 비중 무관
+
+  - id: holdco_discount
+    name_ko: 지주사 할인
+    derivation: quantitative      # is_holding 플래그 + NAV 괴리로 판정
+    axis: structural
+    definition: 순자산가치 대비 과도한 할인 상태의 지주회사.
+    inclusion: 지주회사 요건 충족 + 자회사 지분가치 합 대비 시총 할인율 임계 초과
+    exclusion: 사업지주회사 중 자체 영업이익 비중이 큰 경우는 사업 테마로 분류
+    keywords: []
+    allowed_sectors: [HOLDING]
+    core_revenue_share_min: null
+
+  - id: activist_target
+    name_ko: 행동주의·경영권
+    derivation: llm
+    axis: structural
+    definition: 행동주의 펀드 지분 공시, 주주제안, 경영권 분쟁이 진행 중인 종목.
+    inclusion: 5%룰 대량보유 보고(경영참가 목적), 주주제안 접수, 위임장 경쟁
+    exclusion: 단순투자 목적 지분 취득은 제외
+    keywords: [주주제안, 경영참가, 대량보유, 위임장, 행동주의, 지분경쟁]
+    allowed_sectors: ANY
+    core_revenue_share_min: null
+
+  # ── AI · 전력 ──────────────────────────────────────────────────
+  - id: ai_datacenter_power
+    name_ko: AI 데이터센터 전력기기
+    derivation: llm
+    axis: secular
+    definition: >
+      AI 데이터센터 및 전력망 증설에 따른 초고압 변압기, 차단기, GIS, 배전반 등
+      중전기기 수요 증가의 수혜 종목.
+    inclusion: 초고압 변압기·GIS·차단기 제조, 북미/중동 전력청향 수주 공시
+    exclusion: >
+      데이터센터·전력망향 매출 언급 없이 일반 산업용 저압 배전반만 생산하는 경우 제외.
+      단순 전기공사·시공은 제외.
+    keywords: [변압기, 초고압, 차단기, GIS, 배전반, 개폐기, 전력기기, 중전기, 데이터센터]
+    allowed_sectors: [ELEC_EQUIP, MACHINERY, ELECTRONIC_COMP, CONSTRUCTION]
+    core_revenue_share_min: 0.20
+
+  - id: power_cable_grid
+    name_ko: 전력망·전선
+    derivation: llm
+    axis: secular
+    definition: 송배전망 확충 및 해저케이블 수요에 따른 전선·케이블·소재 종목.
+    # AMI·배전자동화를 포함하는 이유: 전력량계·원격검침은 송배전망 투자 예산에서
+    # 집행되는 같은 사이클이다. 별도 테마로 쪼개면 표본이 흩어져 판정만 어려워진다.
+    inclusion: 초고압 케이블, 해저케이블, 절연소재, 동복강선 제조, 전력량계·AMI·배전자동화
+    exclusion: >
+      통신용 광케이블만 생산하는 경우는 telecom 계열로 분류.
+      데이터센터·발전소용 중전기기(변압기·GIS)가 주력이면 ai_datacenter_power.
+    keywords: [전선, 케이블, 해저케이블, 송전, 배전, 절연, 전력망, 가공선]
+    allowed_sectors: [ELEC_EQUIP, STEEL_METAL, CHEM, ELECTRONIC_COMP]
+    core_revenue_share_min: 0.20
+
+  - id: semi_materials_parts
+    name_ko: 반도체 소재·부품·장비
+    derivation: llm
+    axis: secular
+    definition: 반도체 전공정·후공정용 소재, 부품, 장비를 공급하는 종목.
+    inclusion: 식각·증착 장비, CMP 슬러리, 포토레지스트, 석영/세라믹 부품, 테스트 소켓
+    exclusion: >
+      반도체 고객사가 있다는 사실만으로 배정 금지 — 단순 임가공, 범용 기계부품 납품은 제외.
+      반도체 전용 매출 비중이 확인되어야 한다.
+      **칩 자체를 설계·제조해 파는 종목은 memory_semiconductor 다** — 이쪽은
+      그 칩을 만드는 데 쓰이는 것을 공급하는 종목이다.
+    keywords: [반도체, 웨이퍼, 식각, 증착, CMP, 포토레지스트, 전공정, 후공정, 소재, 장비, 파츠]
+    allowed_sectors: [SEMI, ELECTRONIC_COMP, CHEM, MACHINERY, NONMETAL_MIN]
+    core_revenue_share_min: 0.30
+
+  - id: hbm_advanced_packaging
+    name_ko: HBM·첨단 패키징
+    derivation: llm
+    axis: secular
+    definition: HBM, 2.5D/3D 패키징, TC 본더, TSV 등 첨단 패키징 밸류체인 종목.
+    inclusion: TC본더, 하이브리드 본딩, 인터포저, 언더필, 리드프레임 중 HBM향
+    exclusion: >
+      범용 DRAM/NAND 패키징만 수행하는 경우는 semi_materials_parts로 분류.
+      HBM 을 탑재한 메모리 칩 자체를 만들어 파는 종목은 memory_semiconductor 다
+      — 이 테마는 그 패키징에 쓰이는 장비·소재 공급자를 가리킨다.
+    keywords: [HBM, 패키징, TSV, 본더, 인터포저, 하이브리드본딩, 언더필, 2.5D, 3D적층]
+    allowed_sectors: [SEMI, ELECTRONIC_COMP, MACHINERY, CHEM]
+    core_revenue_share_min: 0.20
+
+  - id: power_semiconductor
+    name_ko: 전력반도체
+    derivation: llm
+    axis: secular
+    definition: SiC/GaN 등 전력반도체 및 전력변환 모듈 관련 종목.
+    inclusion: SiC 웨이퍼·에피, 전력반도체 패키징, 인버터/컨버터 모듈
+    exclusion: 일반 아날로그 IC, 범용 다이오드만 생산하는 경우 제외
+    keywords: [전력반도체, SiC, GaN, 인버터, 컨버터, IGBT, 에피, 전력변환]
+    allowed_sectors: [SEMI, ELECTRONIC_COMP, ELEC_EQUIP]
+    core_revenue_share_min: 0.20
+
+  - id: datacenter_cooling
+    name_ko: 데이터센터 냉각·인프라
+    derivation: llm
+    axis: secular
+    definition: 데이터센터 액침·수랭 냉각, 항온항습, UPS 등 인프라 설비 종목.
+    inclusion: 액침냉각, CDU, 항온항습기, 데이터센터향 UPS·수배전
+    exclusion: 일반 건물용 공조(HVAC)만 취급하는 경우 제외
+    keywords: [냉각, 액침, 수랭, 항온항습, UPS, CDU, 공조, 데이터센터]
+    allowed_sectors: [MACHINERY, ELEC_EQUIP, ELECTRONIC_COMP, CONSTRUCTION]
+    core_revenue_share_min: 0.15
+
+  # ── 산업 사이클 ────────────────────────────────────────────────
+  - id: shipbuilding_marine
+    name_ko: 조선·조선기자재
+    derivation: llm
+    axis: cyclical
+    definition: 선박 건조 및 조선 기자재(엔진, 밸브, 배관, 도료 등) 공급 종목.
+    inclusion: LNG선·컨테이너선 건조, 선박용 엔진·프로펠러·밸브·평형수 설비
+    exclusion: 육상 플랜트용 밸브·배관만 공급하면 plant_epc_overseas로 분류
+    keywords: [조선, 선박, LNG선, 기자재, 선박엔진, 프로펠러, 평형수, 도크, 수주잔고]
+    allowed_sectors: [SHIPBUILD, MACHINERY, STEEL_METAL, CHEM, AUTO]
+    core_revenue_share_min: 0.25
+
+  - id: shipping_freight
+    name_ko: 해운·물류 운임
+    derivation: llm
+    axis: cyclical
+    definition: 컨테이너·벌크·탱커 운임 사이클에 실적이 연동되는 해운·물류 종목.
+    inclusion: 정기선/부정기선 운영, 유조선, 항만 하역
+    exclusion: >
+      내륙 육상운송·택배·3PL·포워딩은 logistics_3pl 로 분류한다.
+      **선박을 보유·용선해 직접 운항하는 운송인(선사)만 해당한다.** 포워딩·주선업은
+      운임이 오를 때 선사와 손익 방향이 반대라(매입원가 상승) 같은 사이클로 볼 수
+      없으므로, 해상 화물을 취급한다는 서술만으로 배정하지 말 것.
+    keywords: [해운, 운임, 컨테이너, 벌크, 탱커, BDI, SCFI, 용선, 항만]
+    allowed_sectors: [TRANSPORT_LOGISTICS]
+    core_revenue_share_min: 0.30
+
+  - id: steel_nonferrous
+    name_ko: 철강·비철 사이클
+    derivation: llm
+    axis: cyclical
+    definition: 철강·비철금속 가격 및 스프레드 사이클에 연동되는 종목.
+    inclusion: 고로/전기로 제강, 압연, 동·알루미늄·아연 제련
+    exclusion: 금속 단순 유통·가공만 하는 경우는 마진 구조가 달라 제외
+    keywords: [철강, 열연, 냉연, 후판, 전기로, 제련, 동, 알루미늄, 아연, 스프레드]
+    allowed_sectors: [STEEL_METAL]
+    core_revenue_share_min: 0.40
+
+  - id: chemical_refining
+    name_ko: 화학·정유 사이클
+    derivation: llm
+    axis: cyclical
+    definition: 정제마진 또는 석유화학 스프레드 사이클에 연동되는 종목.
+    inclusion: 원유 정제, NCC, 기초유분, 합성수지, 정밀화학
+    exclusion: 2차전지 소재가 주력이면 ev_battery_materials로 분류
+    keywords: [정유, 정제마진, NCC, 에틸렌, 프로필렌, 스프레드, 합성수지, 유분, 나프타]
+    allowed_sectors: [CHEM, ENERGY]
+    core_revenue_share_min: 0.40
+
+  - id: construction_materials
+    name_ko: 건설·건자재
+    derivation: llm
+    axis: cyclical
+    definition: 주택·인프라 착공 사이클에 연동되는 건설사 및 건자재 종목.
+    inclusion: 주택 시공, 시멘트, 레미콘, 철근, 창호, 단열재
+    exclusion: 해외 플랜트 EPC 비중이 크면 plant_epc_overseas로 분류
+    keywords: [건설, 시공, 분양, 시멘트, 레미콘, 철근, 창호, 단열재, 착공, 수주]
+    allowed_sectors: [CONSTRUCTION, NONMETAL_MIN, STEEL_METAL, CHEM]
+    core_revenue_share_min: 0.30
+
+  - id: industrial_machinery
+    name_ko: 산업기계·공작기계
+    derivation: llm
+    axis: cyclical
+    definition: 설비투자 사이클에 연동되는 공작기계·건설기계·산업설비 종목.
+    inclusion: 머시닝센터, 굴착기, 지게차, 산업용 로봇, 감속기
+    exclusion: 반도체 전용 장비는 semi_materials_parts로 분류
+    keywords: [공작기계, 건설기계, 굴착기, 지게차, 로봇, 감속기, 머시닝, 설비투자]
+    allowed_sectors: [MACHINERY, ELEC_EQUIP]
+    core_revenue_share_min: 0.30
+
+  # ── 방산 · 원전 · 인프라 수출 ──────────────────────────────────
+  - id: defense_export
+    name_ko: 방산 수출
+    derivation: llm
+    axis: secular
+    definition: 무기체계 및 방산 부품의 해외 수출 확대 수혜 종목.
+    inclusion: 자주포·전차·유도무기·군용기 완제품 및 핵심 부품, 정부간 계약(G2G) 수주
+    exclusion: >
+      내수 방위사업청 납품만 있고 수출 실적·수주잔고가 없으면 core 불가(adjacent).
+      민수용 부품이 주력이면 제외.
+    keywords: [방산, 방위산업, 자주포, 유도무기, 전차, 군용, 수출계약, 방위사업, G2G]
+    allowed_sectors: [AEROSPACE_DEFENSE, MACHINERY, ELECTRONIC_COMP, CHEM, AUTO]
+    core_revenue_share_min: 0.30
+
+  - id: nuclear_smr
+    name_ko: 원전·SMR
+    derivation: llm
+    axis: secular
+    definition: 대형원전 및 소형모듈원자로(SMR) 밸류체인 종목.
+    inclusion: 주기기(원자로·증기발생기), 원전 밸브·펌프, 계측제어, 해체·정비, SMR 설계
+    exclusion: >
+      원전 관련 단순 시공 인력 파견은 제외. 태양광·풍력 등 재생에너지 설비·
+      발전단지는 renewable_power_gen — '무탄소 발전'으로 묶지 말 것.
+    keywords: [원전, 원자력, SMR, 주기기, 증기발생기, 원자로, 핵연료, 계측제어, 해체]
+    allowed_sectors: [MACHINERY, ELEC_EQUIP, CONSTRUCTION, STEEL_METAL, ELECTRONIC_COMP]
+    core_revenue_share_min: 0.20
+
+  - id: plant_epc_overseas
+    name_ko: 해외 플랜트·EPC
+    derivation: llm
+    axis: cyclical
+    definition: 중동·동남아 정유·석유화학·인프라 플랜트 EPC 수주 사이클 종목.
+    inclusion: 해외 정유/가스 플랜트 EPC, 담수화, 대형 인프라 턴키
+    exclusion: 국내 주택 시공이 주력이면 construction_materials로 분류
+    keywords: [플랜트, EPC, 턴키, 중동, 담수, 정유플랜트, 해외수주, 수주잔고]
+    allowed_sectors: [CONSTRUCTION, MACHINERY, ENERGY]
+    core_revenue_share_min: 0.30
+
+  # ── 모빌리티 ──────────────────────────────────────────────────
+  - id: auto_parts
+    name_ko: 자동차 부품
+    derivation: llm
+    axis: cyclical
+    definition: 완성차 생산량 및 판가에 연동되는 내연·공용 부품 종목.
+    inclusion: 파워트레인, 섀시, 내외장, 시트, 공조, 베어링
+    exclusion: 전동화 전용 부품이 주력이면 auto_electrification으로 분류
+    keywords: [자동차부품, 완성차, 파워트레인, 섀시, 내장재, 시트, 공조, 베어링, OEM]
+    # ELEC_EQUIP: 와이어하네스·커넥터 업체는 KSIC 28(전기장비 — 절연선 및 케이블,
+    # 전기회로 개폐·접속장치)로 분류된다. 자동차 부품사가 이 코드로 떨어지는 건
+    # 구조적이므로 섹터 충돌로 볼 수 없다.
+    allowed_sectors: [AUTO, ELECTRONIC_COMP, ELEC_EQUIP, CHEM, STEEL_METAL]
+    core_revenue_share_min: 0.40
+
+  - id: ev_battery_materials
+    name_ko: 2차전지 소재
+    derivation: llm
+    axis: secular
+    definition: 리튬이온 배터리 4대 소재 및 전구체·첨가제 공급 종목.
+    inclusion: 양극재, 음극재, 분리막, 전해액, 동박, 전구체, CNT 도전재
+    exclusion: >
+      배터리 셀 고객사가 있다는 사실만으로 배정 금지. 신규 진출 발표 단계이고
+      매출 비중이 미미하면 peripheral로 강등.
+    keywords: [2차전지, 양극재, 음극재, 분리막, 전해액, 동박, 전구체, 도전재, 리튬, 배터리소재]
+    allowed_sectors: [CHEM, STEEL_METAL, ELECTRONIC_COMP, MACHINERY]
+    core_revenue_share_min: 0.25
+
+  - id: auto_electrification
+    name_ko: 전장·자율주행
+    derivation: llm
+    axis: secular
+    definition: 차량 전장화·자율주행 전환에 따른 전자부품·SW 종목.
+    inclusion: 구동모터, 인버터, ADAS 센서·카메라, 차량용 반도체·MLCC, 차량 SW
+    exclusion: 내연기관 전용 부품이 주력이면 auto_parts로 분류
+    keywords: [전장, 자율주행, ADAS, 구동모터, 차량용반도체, MLCC, 라이다, 카메라모듈]
+    allowed_sectors: [AUTO, ELECTRONIC_COMP, SEMI, IT_SERVICES]
+    core_revenue_share_min: 0.25
+
+  # ── 소비 · 내수 ───────────────────────────────────────────────
+  - id: food_beverage_domestic
+    name_ko: 음식료·내수소비
+    derivation: llm
+    axis: cyclical
+    definition: 곡물가·환율 하락에 따른 원가 개선 또는 판가 인상 수혜 음식료 종목.
+    inclusion: 가공식품, 제분·제당, 유가공, 주류, 사료
+    exclusion: 화장품·건강기능식품이 주력이면 cosmetics_kbeauty로 분류
+    keywords: [음식료, 가공식품, 제분, 제당, 유가공, 주류, 사료, 곡물가, 판가인상]
+    allowed_sectors: [FOOD_BEV, RETAIL]
+    core_revenue_share_min: 0.40
+
+  - id: retail_distribution
+    name_ko: 유통·소매
+    derivation: llm
+    axis: cyclical
+    definition: >
+      최종 소비자 대상 오프라인·온라인 소매 채널을 직접 운영하며, 점포 수·객단가·
+      기존점 성장률이 실적의 주된 동인인 종목.
+    inclusion: 백화점, 대형마트, 편의점, 홈쇼핑, 이커머스 플랫폼
+    exclusion: B2B 도매·상사는 trading_house로 분류
+    keywords: [백화점, 대형마트, 편의점, 홈쇼핑, 이커머스, 소매, 유통, 점포]
+    allowed_sectors: [RETAIL, TRADING_DISTRIB]
+    core_revenue_share_min: 0.40
+
+  - id: cosmetics_kbeauty
+    name_ko: 화장품·K뷰티
+    derivation: llm
+    axis: secular
+    definition: 화장품 브랜드 및 ODM/OEM, 부자재 종목. 수출 확대가 주된 동인.
+    inclusion: 화장품 ODM/OEM, 브랜드사, 용기·부자재, 원료
+    exclusion: 일반 생활용품(세제 등)만 생산하는 경우 제외
+    keywords: [화장품, 뷰티, ODM, OEM, 색조, 기초, 용기, 부자재, 인디브랜드, 수출]
+    allowed_sectors: [CHEM, RETAIL, TEXTILE_APPAREL, PHARMA_BIO]
+    core_revenue_share_min: 0.35
+
+  - id: travel_leisure
+    name_ko: 여행·레저
+    derivation: llm
+    axis: cyclical
+    definition: 출입국 수요 및 여가 소비 회복에 연동되는 종목.
+    inclusion: 여행사, 항공, 호텔, 면세, 카지노, 리조트
+    exclusion: 화물 비중이 압도적인 항공사는 shipping_freight로 분류
+    keywords: [여행, 항공, 호텔, 면세, 카지노, 리조트, 여객, 인바운드, 출국자]
+    allowed_sectors: [LEISURE_TRAVEL, TRANSPORT_LOGISTICS, RETAIL]
+    core_revenue_share_min: 0.35
+
+  - id: apparel_textile
+    name_ko: 의류·섬유
+    derivation: llm
+    axis: cyclical
+    definition: 의류 브랜드 및 OEM/ODM 벤더, 섬유 소재 종목.
+    inclusion: 의류 OEM 벤더, 브랜드 패션, 원단·원사
+    exclusion: 산업용 섬유(타이어코드 등)가 주력이면 chemical_refining으로 분류
+    keywords: [의류, 패션, OEM벤더, 원단, 원사, 니트, 브랜드, 아웃도어]
+    allowed_sectors: [TEXTILE_APPAREL, RETAIL, CHEM]
+    core_revenue_share_min: 0.40
+
+  # ── 금융 ──────────────────────────────────────────────────────
+  - id: bank_capital_return
+    name_ko: 은행 주주환원
+    derivation: llm
+    axis: structural
+    definition: CET1 비율 개선을 바탕으로 배당·자사주 확대를 추진하는 은행·금융지주.
+    inclusion: 금융지주·은행으로 자본비율 기반 환원정책 공시
+    exclusion: 비은행 계열 비중이 압도적이면 other_fin 계열로 분류
+    keywords: [은행, 금융지주, CET1, 보통주자본비율, NIM, 대손, 주주환원, 배당]
+    allowed_sectors: [BANK, OTHER_FIN, HOLDING]
+    core_revenue_share_min: null
+
+  - id: securities_brokerage
+    name_ko: 증권·자본시장
+    derivation: llm
+    axis: cyclical
+    definition: 거래대금·IB 딜 흐름에 실적이 연동되는 증권사.
+    inclusion: 위탁매매, IB, 자기매매, 자산관리
+    exclusion: 자산운용 전업사는 other_fin으로 분류
+    keywords: [증권, 위탁매매, 브로커리지, IB, 거래대금, 자기매매, ELS, 발행어음]
+    allowed_sectors: [SECURITIES, OTHER_FIN]
+    core_revenue_share_min: null
+
+  - id: insurance_capital
+    name_ko: 보험·자본정책
+    derivation: llm
+    axis: structural
+    definition: IFRS17/K-ICS 체제 하에서 CSM 및 자본비율이 핵심 변수인 보험사.
+    inclusion: 생명·손해보험사
+    exclusion: 보험대리점(GA)은 other_fin으로 분류
+    keywords: [보험, 손해보험, 생명보험, CSM, IFRS17, K-ICS, 지급여력, 손해율]
+    allowed_sectors: [INSURANCE]
+    core_revenue_share_min: null
+
+  # ── 헬스케어 ──────────────────────────────────────────────────
+  - id: pharma_api_cmo
+    name_ko: 원료의약품·CMO
+    derivation: llm
+    axis: secular
+    definition: 원료의약품(API) 및 위탁생산(CMO/CDMO) 종목.
+    inclusion: API 합성, 완제 CMO, 바이오 CDMO, 임상 위탁(CRO)
+    exclusion: 신약 파이프라인 가치가 주된 밸류에이션 근거인 종목은 딥밸류 스크린 부적합
+    keywords: [원료의약품, API, CMO, CDMO, 위탁생산, 합성, 무균, GMP, CRO]
+    allowed_sectors: [PHARMA_BIO, CHEM]
+    core_revenue_share_min: 0.30
+
+  # ── 기타 ──────────────────────────────────────────────────────
+  - id: media_content_ip
+    name_ko: 미디어·콘텐츠 IP
+    derivation: llm
+    axis: secular
+    definition: >
+      드라마·영화·음악·웹툰 등 콘텐츠 IP를 직접 제작하거나 그 권리를 보유·유통하며,
+      작품 흥행과 판권 판매가 실적을 좌우하는 종목.
+    inclusion: 드라마·영화 제작, 음반·매니지먼트, 웹툰/웹소설 IP
+    exclusion: 광고대행·미디어렙이 주력이면 advertising_marketing 으로 분류
+    keywords: [콘텐츠, 드라마, 제작사, 음원, 매니지먼트, 웹툰, IP, OTT, 판권]
+    allowed_sectors: [MEDIA_ENT, IT_SERVICES]
+    core_revenue_share_min: 0.35
+
+  - id: game_publishing
+    name_ko: 게임
+    derivation: llm
+    axis: secular
+    definition: >
+      게임 타이틀을 직접 개발하거나 퍼블리싱하며, 신작 출시 일정과 기존작 매출
+      감소 곡선이 실적의 주된 동인인 종목.
+    inclusion: 모바일/PC/콘솔 게임 개발, 퍼블리싱, 게임 IP 라이선싱
+    exclusion: 게임 관련 하드웨어만 생산하는 경우 제외
+    keywords: [게임, 퍼블리싱, 모바일게임, MMORPG, 신작, 콘솔, 스팀, 인앱결제]
+    allowed_sectors: [IT_SERVICES, MEDIA_ENT]
+    core_revenue_share_min: 0.40
+
+  - id: it_services_si
+    name_ko: IT서비스·SI
+    derivation: llm
+    axis: structural
+    definition: 시스템 통합, IT 아웃소싱, 클라우드 전환 서비스 종목.
+    inclusion: SI/SM, 클라우드 MSP, 데이터센터 운영, 그룹 내부 IT 물량
+    exclusion: >
+      자체 SW 제품 매출이 주력이면 별도 판단. 신용평가·신용정보 조회·기업정보
+      DB 구독이 주력이면 credit_rating_data — 같은 IT_SERVICES 섹터라도
+      파는 것이 '구축 용역'인지 '데이터'인지로 가른다.
+    keywords: [SI, 시스템통합, IT아웃소싱, 클라우드, MSP, 데이터센터운영, DX, ITO]
+    allowed_sectors: [IT_SERVICES, TELECOM]
+    core_revenue_share_min: 0.40
+
+  - id: trading_house
+    name_ko: 종합상사
+    derivation: llm
+    axis: structural
+    definition: 무역·트레이딩 및 자원개발·사업투자를 병행하는 종합상사.
+    inclusion: >
+      철강·화학·에너지 트레이딩, 해외 자원개발 지분, 프로젝트 오거나이징,
+      반도체·전자부품 유통(대리점) — 재고·환리스크를 지고 마진을 남기는 구조가 같다
+    exclusion: >
+      단일 품목 전문 유통사는 retail_distribution 으로 분류.
+      LPG·가스 유통이 주력이면 lpg_gas_distribution.
+      직접 설계·제조하면 유통이 아니다(semi_materials_parts 등 해당 제조 테마로).
+    keywords: [종합상사, 트레이딩, 무역, 자원개발, 오거나이징, 중개, 상사]
+    allowed_sectors: [TRADING_DISTRIB, HOLDING, ENERGY]
+    core_revenue_share_min: 0.40
+
+  - id: recycling_environment
+    name_ko: 리사이클·환경
+    derivation: llm
+    axis: secular
+    definition: >
+      폐기물 수집·처리 인허가나 재활용 설비를 보유하고 처리 단가·물량으로 수익을
+      내는 종목, 또는 관련 환경 설비를 제조·공급하는 종목.
+    inclusion: 폐기물 소각·매립, 폐배터리 리사이클, 폐플라스틱 열분해, 수처리
+    exclusion: 단순 환경 컨설팅·측정 대행은 제외
+    keywords: [폐기물, 소각, 매립, 리사이클, 재활용, 폐배터리, 열분해, 수처리, 스크랩]
+    # NONMETAL_MIN: 시멘트·콘크리트사의 순환자원(폐기물) 연료·원료 대체와
+    # 폐기물 처리업 겸영은 업계 표준 관행이다.
+    allowed_sectors: [CHEM, STEEL_METAL, CONSTRUCTION, MACHINERY, UTILITIES, NONMETAL_MIN]
+    core_revenue_share_min: 0.30
+
+
+  # ── 2026-08-07 신설: 기권 18종목을 수용하기 위한 테마 ──
+  # 기존 사전이 제조·소재 중심이라 물류·유통·서비스 업종에 칸이 없었다.
+  # LLM 기권 25건의 상당수는 오류가 아니라 사전 공백이었다.
+
+  - id: logistics_3pl
+    name_ko: 물류·택배
+    derivation: llm
+    axis: cyclical
+    definition: 화물 취급 물량과 단가에 실적이 연동되는 계약물류·택배·포워딩 종목.
+    inclusion: 3PL(계약물류), 택배, 국제 포워딩, 창고·보관, 내륙운송
+    exclusion: >
+      선박을 보유·용선해 직접 운항하면 shipping_freight.
+      포워더는 운임 상승이 매입원가 상승이라 선사와 손익 방향이 반대다 — 여기로 온다.
+    keywords: [3PL, 택배, 포워딩, 계약물류, 창고, 보관, 통관, 내륙운송, 물류센터]
+    allowed_sectors: [TRANSPORT_LOGISTICS, TRADING_DISTRIB]
+    core_revenue_share_min: 0.30
+
+  - id: lpg_gas_distribution
+    name_ko: LPG·가스 유통
+    derivation: llm
+    axis: cyclical
+    definition: LPG·LNG 를 수입·저장·유통하며 판가와 도입원가 스프레드로 수익을 내는 종목.
+    inclusion: LPG 수입·충전·판매, 가스 트레이딩, 저장·터미널, 산업용 가스 공급
+    exclusion: >
+      요금이 규제되는 도시가스 소매가 주력이면 telecom_utility_yield.
+      원유 정제·석유화학 제조는 chemical_refining.
+    keywords: [LPG, 프로판, 부탄, 가스, 충전소, 수입, 저장, 터미널, 도입]
+    allowed_sectors: [TRADING_DISTRIB, ENERGY, UTILITIES, CHEM]
+    core_revenue_share_min: 0.40
+
+  - id: payments_fintech
+    name_ko: 전자결제·핀테크
+    derivation: llm
+    axis: secular
+    definition: 결제 건수·거래대금에 수수료 수익이 연동되는 전자결제·핀테크 종목.
+    inclusion: PG(전자지불결제대행), VAN, 간편결제, 결제 단말·인프라, 전자금융
+    exclusion: >
+      은행·증권·보험 본업은 각 금융 테마로.
+      커머스가 주력이고 결제는 부수 기능이면 retail_distribution.
+    keywords: [전자결제, PG, VAN, 결제대행, 간편결제, 거래대금, 전자금융, 결제단말]
+    allowed_sectors: [IT_SERVICES, OTHER_FIN, BUSINESS_SVC]
+    core_revenue_share_min: 0.40
+
+  - id: medical_devices
+    name_ko: 의료기기
+    derivation: llm
+    axis: secular
+    definition: >
+      진단·치료에 쓰이는 의료기기를 직접 설계·제조해 병원·클리닉에 공급하며,
+      기기 판매와 소모품·유지보수 매출이 실적을 좌우하는 종목.
+      의약품과 달리 임상 파이프라인이 아니라 장비 교체 주기와 수가 정책이 동인이다.
+    inclusion: 영상진단(X-ray·CT·초음파), 체외진단, 치과기기, 임플란트, 수술기구, 미용의료기기
+    exclusion: >
+      의약품·원료의약품 제조는 pharma_api_cmo.
+      병원 운영·검진 서비스 등 의료 서비스업은 제외.
+    keywords: [의료기기, 진단, X-ray, CT, 초음파, 임플란트, 체외진단, 내시경, 덴탈, 의료영상]
+    allowed_sectors: [HEALTHCARE_SVC, PHARMA_BIO, ELECTRONIC_COMP, OTHER_MFG]
+    core_revenue_share_min: 0.40
+
+  - id: display_equipment_parts
+    name_ko: 디스플레이 장비·부품
+    derivation: llm
+    axis: cyclical
+    definition: >
+      패널 업체의 설비투자 사이클과 세트 출하량에 연동되는 디스플레이 장비·부품 종목.
+    inclusion: >
+      패널 제조·검사 장비, FPCB, 구동회로 실장(PBA·COF), 편광·광학 필름, 백라이트
+    exclusion: >
+      반도체 전·후공정용 장비·소재는 semi_materials_parts (같은 고객사라도 공정이 다르다).
+      패널 자체를 생산하는 세트업체는 제외.
+    keywords: [OLED, LCD, 디스플레이, 패널, FPCB, 검사장비, 증착, 편광, COF, 백라이트, PBA]
+    allowed_sectors: [ELECTRONIC_COMP, MACHINERY, SEMI, CHEM]
+    core_revenue_share_min: 0.40
+
+  - id: advertising_marketing
+    name_ko: 광고·마케팅
+    derivation: llm
+    axis: cyclical
+    definition: 광고주의 집행 예산에 실적이 연동되는 광고대행·마케팅 종목.
+    inclusion: 종합광고대행, 디지털 광고, 미디어렙, 옥외광고, 마케팅 솔루션
+    exclusion: >
+      드라마·영화·음악 등 콘텐츠 IP 를 직접 제작·보유하면 media_content_ip.
+    keywords: [광고, 광고대행, 미디어렙, 디지털광고, 캠페인, 마케팅, 매체, 옥외광고]
+    allowed_sectors: [MEDIA_ENT, BUSINESS_SVC, IT_SERVICES]
+    core_revenue_share_min: 0.40
+
+  - id: rental_leasing
+    name_ko: 렌탈·리스
+    derivation: llm
+    axis: structural
+    definition: 자산을 직접 보유해 임대료로 반복 수익을 내는 렌탈·리스 종목.
+    inclusion: 산업장비·파렛트·IT기기 렌탈, 생활가전 렌탈, 차량 렌트, 운용리스
+    exclusion: >
+      부동산 임대는 제외.
+      자산을 보유하지 않고 금융만 제공하는 금융리스는 각 금융 테마로.
+    keywords: [렌탈, 리스, 임대, 파렛트, 고소장비, 렌터카, 정수기, 운용리스]
+    allowed_sectors: [MACHINERY, BUSINESS_SVC, TRADING_DISTRIB, OTHER_FIN]
+    core_revenue_share_min: 0.40
+
+  - id: net_cash_asset_play
+    name_ko: 순현금·자산주
+    derivation: quantitative      # net_cash / market_cap 임계로 판정
+    axis: structural
+    definition: 순현금 또는 투자부동산·유가증권 등 비영업자산 가치가 시총 대비 과도한 종목.
+    inclusion: 순현금 / 시총 임계 초과, 또는 비영업자산 장부가 / 시총 임계 초과
+    exclusion: 금융업(은행·증권·보험)은 순현금 개념이 성립하지 않아 제외
+    keywords: []
+    allowed_sectors: NOT [BANK, SECURITIES, INSURANCE, OTHER_FIN]
+    core_revenue_share_min: null
+
+  - id: telecom_utility_yield
+    name_ko: 통신·유틸리티 배당
+    derivation: llm
+    axis: structural
+    definition: 규제 산업 내 안정적 현금흐름을 바탕으로 한 고배당 통신·유틸리티 종목.
+    inclusion: 이동통신, 전력·가스 공급, 지역난방
+    exclusion: 요금 규제로 적자 구조가 고착된 경우 데이터 품질 플래그와 함께 검토
+    keywords: [통신, 이동통신, ARPU, 전력, 가스, 지역난방, 요금규제, 배당]
+    allowed_sectors: [TELECOM, UTILITIES]
+    core_revenue_share_min: 0.50
+
+  # ── v1.2 추가: 복수 종목 공백 (2026-08-08) ─────────────────────────
+  # GARP/Quality FCF 스크린 최초 실행에서 기권 15종목이 나왔고, 그중 8종목이
+  # 아래 세 칸이 없어서 발생했다. **LLM 오작동이 아니었다** — 억지로 끼워맞추지
+  # 않고 기권한 것이라, 채워야 할 것은 프롬프트가 아니라 사전이다.
+  # 단일 종목만 해당하는 공백(수공구, 택스리펀드, 부동산 권리조사 등)은
+  # 만들지 않는다. 그 종목이 다음 리밸런스에서 빠지면 죽은 테마가 된다.
+
+  - id: memory_semiconductor
+    name_ko: 메모리 반도체
+    derivation: llm
+    axis: cyclical
+    definition: DRAM·NAND 등 메모리 반도체를 직접 설계 또는 제조하여 판매하는 종목.
+    # 이 칸이 없어서 SK하이닉스·삼성전자가 동시에 기권했다. semi_materials_parts
+    # 는 '공급하는' 종목이고 제외 조항이 칩메이커를 막고 있어, 칩을 만드는 회사가
+    # 들어갈 자리가 아예 없었다.
+    inclusion: >
+      DRAM·NAND·MCP·이미지센서 등 메모리/시스템 반도체 칩의 직접 설계 또는
+      웨이퍼 제조. 팹리스로 설계만 하고 파운드리에 위탁하는 경우도 포함한다
+      (제주반도체) — 판단 기준은 팹 보유가 아니라 **칩 자체를 팔았는가**다.
+    exclusion: >
+      장비·소재·부품 공급은 semi_materials_parts. HBM 본딩·인터포저 등 첨단
+      패키징 공정 장비·소재는 hbm_advanced_packaging. SiC·전력반도체는
+      power_semiconductor. 메모리 모듈을 사다 조립·유통만 하면 제외.
+      후공정 외주(OSAT)만 수행하는 경우도 칩을 판 것이 아니므로 제외.
+    keywords: [DRAM, NAND, 메모리, 낸드, 플래시, D램, MCP, 웨이퍼, 팹, 파운드리, 시스템반도체, 이미지센서]
+    # 삼성전자는 ELECTRONIC_COMP 로 분류돼 있다. SEMI 만 두면 sector_conflict 가
+    # 뜬다 — 실제로는 섹터 매핑의 한계이지 분류 오류가 아니다.
+    allowed_sectors: [SEMI, ELECTRONIC_COMP]
+    # 0.3 으로 두는 이유: 삼성전자 DS 부문은 매출 비중이 40% 안팎이라
+    # 0.5 를 걸면 배정되지 않는다. 손익 기여는 그보다 훨씬 크다.
+    core_revenue_share_min: 0.3
+
+  - id: credit_rating_data
+    name_ko: 신용평가·기업정보
+    derivation: llm
+    axis: structural
+    definition: 신용평가·신용정보 조회·기업정보 DB·금융데이터 단말을 제공하는 종목.
+    inclusion: >
+      기업/개인 신용평가 및 신용정보 조회, 기업정보 DB 구독, 금융데이터 단말·
+      리서치 정보 판매, 자산실사·권리조사 등 정보 검증 용역
+    exclusion: >
+      시스템 구축·운영이 주력이면 it_services_si. 결제·정산·VAN 은
+      payments_fintech. 증권 위탁매매 수수료가 주력이면 securities_brokerage.
+    keywords: [신용평가, 신용정보, CB, 기업정보, 데이터베이스, 금융정보, 단말, 리서치, 실사, 권리조사]
+    allowed_sectors: [IT_SERVICES, SECURITIES, OTHER_FIN, BUSINESS_SVC]
+    core_revenue_share_min: 0.4
+
+  - id: renewable_power_gen
+    name_ko: 신재생 발전
+    derivation: llm
+    axis: secular
+    definition: 태양광·풍력 등 재생에너지 설비를 제조하거나 발전단지를 개발·운영하는 종목.
+    inclusion: >
+      태양광 셀·모듈·인버터 제조, 풍력 타워·블레이드 제조, 재생에너지 발전단지
+      개발·EPC·O&M, 자체 발전 매출(PPA·REC 판매)
+    exclusion: >
+      원전·SMR 은 nuclear_smr. 송배전 기자재(변압기·케이블)는 power_cable_grid
+      또는 ai_datacenter_power. ESS 배터리 셀·소재는 ev_battery_materials.
+      재생에너지 현장의 단순 토목 시공만 수행하면 construction_materials.
+    keywords: [태양광, 셀, 모듈, 인버터, 풍력, 블레이드, 타워, REC, PPA, 재생에너지, 발전단지, 신재생]
+    # HD현대에너지솔루션은 태양광 셀 공정이 반도체와 겹쳐 SEMI 로 분류돼 있고,
+    # 대명에너지는 발전단지 개발이 주력이라 CONSTRUCTION 이다. 둘 다 정상이다.
+    allowed_sectors: [SEMI, CONSTRUCTION, ELEC_EQUIP, MACHINERY, UTILITIES, ENERGY]
+    core_revenue_share_min: 0.4

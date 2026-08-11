@@ -1,0 +1,68 @@
+{
+  "status": "000",
+  "message": "정상",
+  "list": [
+    {
+      "rcept_no": "20250515000456", "reprt_code": "11013", "bsns_year": "2025",
+      "corp_code": "00126380", "sj_div": "IS", "sj_nm": "손익계산서",
+      "account_id": "ifrs-full_Revenue", "account_nm": "매출액",
+      "thstrm_nm": "제 57 기 1분기", "thstrm_amount": "520,000,000,000",
+      "thstrm_add_amount": "520,000,000,000",
+      "frmtrm_nm": "제 56 기 1분기", "frmtrm_amount": "480,000,000,000",
+      "frmtrm_add_amount": "480,000,000,000",
+      "currency": "KRW", "ord": "1"
+    },
+    {
+      "rcept_no": "20250515000456", "reprt_code": "11013", "bsns_year": "2025",
+      "corp_code": "00126380", "sj_div": "IS", "sj_nm": "손익계산서",
+      "account_id": "dart_OperatingIncomeLoss", "account_nm": "영업이익",
+      "thstrm_nm": "제 57 기 1분기", "thstrm_amount": "35,000,000,000",
+      "thstrm_add_amount": "35,000,000,000",
+      "frmtrm_nm": "제 56 기 1분기", "frmtrm_amount": "33,000,000,000",
+      "frmtrm_add_amount": "33,000,000,000",
+      "currency": "KRW", "ord": "2"
+    },
+    {
+      "rcept_no": "20250515000456", "reprt_code": "11013", "bsns_year": "2025",
+      "corp_code": "00126380", "sj_div": "IS", "sj_nm": "손익계산서",
+      "account_id": "ifrs-full_ProfitLossAttributableToOwnersOfParent",
+      "account_nm": "지배기업 소유주지분 순이익",
+      "thstrm_nm": "제 57 기 1분기", "thstrm_amount": "30,000,000,000",
+      "thstrm_add_amount": "30,000,000,000",
+      "frmtrm_nm": "제 56 기 1분기", "frmtrm_amount": "25,000,000,000",
+      "frmtrm_add_amount": "25,000,000,000",
+      "currency": "KRW", "ord": "3"
+    },
+    {
+      "rcept_no": "20250515000456", "reprt_code": "11013", "bsns_year": "2025",
+      "corp_code": "00126380", "sj_div": "BS", "sj_nm": "재무상태표",
+      "account_id": "ifrs-full_EquityAttributableToOwnersOfParent",
+      "account_nm": "지배기업 소유주지분",
+      "thstrm_nm": "제 57 기 1분기말", "thstrm_amount": "1,030,000,000,000",
+      "frmtrm_nm": "제 56 기말", "frmtrm_amount": "1,000,000,000,000",
+      "currency": "KRW", "ord": "4"
+    },
+    {
+      "rcept_no": "20250515000456", "reprt_code": "11013", "bsns_year": "2025",
+      "corp_code": "00126380", "sj_div": "CF", "sj_nm": "현금흐름표",
+      "account_id": "ifrs-full_CashFlowsFromUsedInOperatingActivities",
+      "account_nm": "영업활동현금흐름",
+      "thstrm_nm": "제 57 기 1분기", "thstrm_amount": "40,000,000,000",
+      "thstrm_add_amount": "40,000,000,000",
+      "frmtrm_nm": "제 56 기 1분기", "frmtrm_amount": "38,000,000,000",
+      "frmtrm_add_amount": "38,000,000,000",
+      "currency": "KRW", "ord": "5"
+    },
+    {
+      "rcept_no": "20250515000456", "reprt_code": "11013", "bsns_year": "2025",
+      "corp_code": "00126380", "sj_div": "CF", "sj_nm": "현금흐름표",
+      "account_id": "ifrs-full_PurchaseOfPropertyPlantAndEquipment",
+      "account_nm": "유형자산의 취득",
+      "thstrm_nm": "제 57 기 1분기", "thstrm_amount": "-12,000,000,000",
+      "thstrm_add_amount": "-12,000,000,000",
+      "frmtrm_nm": "제 56 기 1분기", "frmtrm_amount": "-11,000,000,000",
+      "frmtrm_add_amount": "-11,000,000,000",
+      "currency": "KRW", "ord": "6"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+# 코어
+duckdb>=1.0
+pandas>=2.0
+pyarrow>=15
+PyYAML>=6.0
+requests>=2.31
+
+# 검증 레이어 V1 의 퍼지 인용 매칭. 선택 의존성이 아니다 —
+# 없으면 인용 검증이 완전일치만 하게 되어 환각률이 부풀려진다.
+rapidfuzz>=3.0
+
+# LLM 태깅
+anthropic>=0.40
+
+# 테스트
+pytest>=8.0

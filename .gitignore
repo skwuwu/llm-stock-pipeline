@@ -1,0 +1,18 @@
+# 자격증명 — 절대 커밋 금지
+.env
+.env.*
+!.env.example
+*.key
+
+# 데이터 (raw 는 재수집 가능, 스토어는 재생성 가능)
+data/
+*.duckdb
+*.duckdb.wal
+
+# 파이썬
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/

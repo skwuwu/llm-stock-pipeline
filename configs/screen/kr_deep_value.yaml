@@ -1,0 +1,293 @@
+# KR 딥밸류 스크린 + 적응형 게이트
+# LLM 단계로 넘어가는 종목 수를 커트라인 조절로 통제한다.
+version: 2
+name: 딥밸류
+market: KR
+
+# ── 하드 가드: 절대 튜닝되지 않는다. 데이터 품질과 유니버스 정의의 문제. ──
+universe:
+  # 현재 데이터로 실제 강제되는 가드. 여기 적힌 컬럼이 없으면 스크린이 실패한다
+  # (조용히 건너뛰지 않는다 — 가드가 도는 줄 알고 안 도는 상태가 가장 위험하다).
+  exclude_flags:
+    - capital_impairment   # 자본잠식 → PBR 음수라 'PBR < 1' 을 그냥 통과함
+    - negative_earnings    # 적자 → PER 음수라 'PER < 10' 을 그냥 통과함
+    - stale_financials     # 최근 재무공시 경과 200일 초과
+    - ttm_incomplete       # TTM 구성요소 결측 (0으로 메우지 않았다)
+    # is_spac / is_preferred 는 현재 배제 0건이다. 빼지 않는 이유:
+    #   is_spac      — ingest-dart 가 이미 걸러 facts 가 없다(derive 에서 탈락).
+    #                  수집 경로가 바뀌면 여기가 마지막 방어선이 된다.
+    #   is_preferred — KIND 상장법인목록이 **법인 단위**라 우선주 종목이 유니버스에
+    #                  들어오지 않는다. 종목 단위 소스로 바꾸면 즉시 필요해진다.
+    # 0건이라는 사실은 매니페스트 guards.inert 와 실행 시 경고로 드러난다.
+    - is_spac
+    - is_reit
+    - is_preferred         # 우선주는 보통주로 dedup
+    - admin_issue          # KIND 관리종목 (지정일 기준 PIT)
+    - audit_opinion_bad_admin  # 관리종목 지정사유에 감사의견 관련 포함
+    - market_cap_implausible   # 원본 주식수 오류 등으로 시총이 물리적으로 불가능
+    - pbr_implausible          # 시총·자본 정합성 교차검증 실패
+    # 종가 × 배당 교차검증. 배당은 종가와 **독립된 소스**라 시총·PBR 로는
+    # 안 잡히는 주가 오류를 여기서만 잡는다. 배당 데이터 자체가 불가능한 경우
+    # (수익률>20%, DPS>주가)는 주가를 의심할 근거가 아니므로 먼저 갈라낸다 —
+    # 그러지 않으면 DART 입력 오류 때문에 멀쩡한 종목이 배제된다.
+    - price_dividend_inconsistent
+    # 시총이 자본·매출 **양쪽** 대비 불가능한 수준. 매출·자본은 DART 에서 오므로
+    # 주가와 독립이다 — 두 번째 가격 소스 없이 쓸 수 있는 유일한 교차검증이다.
+    # 배당 가드(커버리지 46%)가 못 잡는 종목을 잡는다: 실측 5건 중 3건이 그렇다.
+    - market_cap_inconsistent
+  min_market_cap_krw: 50_000_000_000
+
+  # 아직 소스가 없어 강제하지 못하는 가드. 스크린 실행 시 매번 경고한다.
+  #   suspended            : KRX 데이터포털이 로그인을 요구하게 되어 소스 없음.
+  #                          KIND tradinghalt 엔드포인트는 404.
+  #   fiscal_period_change : 회계기간 ≠ 12개월. reprt_code 로는 표현되지 않아
+  #                          사업보고서 본문을 파싱해야 탐지 가능.
+  pending_guards:
+    - suspended
+    - fiscal_period_change
+
+# ── 정량 필터: tightness t ∈ [0,1] 로 loose↔tight 사이를 선형 보간 ──
+# 각 필터는 t에 대해 단조(통과 종목수가 t 증가 시 비증가)여야 이분탐색이 성립한다.
+filters:
+  - {metric: per,       direction: lower_better, loose: 15.0,  tight: 6.0,   exclusive_zero: true}
+  - {metric: pbr,       direction: lower_better, loose: 1.20,  tight: 0.55,  exclusive_zero: true}
+  - {metric: fcf_yield, direction: higher_better, loose: 0.00, tight: 0.08}
+  - {metric: adtv_20d, direction: higher_better, loose: 100_000_000, tight: 500_000_000}
+
+# ── 게이트: LLM에 몇 종목을 먹일지 ──
+gate:
+  mode: target_count        # fixed | target_count | rank_top_n
+  target_count: 60
+  tolerance: 5              # target ± tolerance 안이면 수렴으로 간주
+  hard_cap: 100             # 어떤 경우에도 LLM에 이 이상 넘기지 않는다
+  bisect_iterations: 40
+
+  # 토큰 예산으로 target_count를 역산. 지정 시 target_count를 덮어쓴다.
+  # est_tokens_per_stock = evidence pack 평균 입력 토큰(캐시 미적중 부분)
+  budget:
+    enabled: false
+    max_input_tokens: 600_000
+    est_tokens_per_stock: 8_000
+
+  # 히스테리시스: 기존 편입 종목은 더 느슨한 t에서 평가해 비경제적 교체를 줄인다.
+  # 임계값이 매 실행 떠다니면 바스켓이 이유 없이 회전한다.
+  hysteresis: 0.08
+
+# ── 체크: 켜고 끄는 스크린 조건 ──────────────────────────────────────
+# kind 로 역할이 정해진다. 코드 수정 없이 설정만으로 옮길 수 있다.
+#   hard_guard   절대 배제 (튜닝 안 됨)
+#   gate_filter  tightness t 로 loose↔tight 보간, 종목 수 조절에 참여
+#   soft_flag    통과시키되 표기만 (다이제스트·LLM 입력에 실림)
+#
+# ⚠ gate_filter 로 바꿔도 **종목 수는 줄지 않는다.** 이분탐색이 target_count 를
+#   맞추려고 t 를 느슨하게 조정하므로, 바뀌는 것은 개수가 아니라 구성이다.
+#   개수를 줄이려면 hard_guard 로 두거나 target_count 를 낮출 것.
+#
+# ⚠ 금융업은 부채가 영업의 재료다(예금·보험부채). 부채비율·ROIC 계열은
+#   exclude_sectors 를 비워두면 안 된다.
+checks:
+  - id: accrual_anomaly
+    polarity: risk
+    risk_group: 현금창출
+    enabled: true
+    kind: soft_flag
+    metric: accrual_ratio           # (순이익 − 영업현금흐름) / 총자산
+    op: ">"
+    threshold: 0.10
+    exclude_sectors: [BANK, INSURANCE, SECURITIES, OTHER_FIN]
+    note: 이익이 현금을 앞선다. 발생액 품질 의심 — 일회성·매출채권 급증 점검
+
+  - id: cfo_shortfall
+    polarity: risk
+    risk_group: 현금창출
+    enabled: true
+    kind: soft_flag
+    metric: cfo_to_ni               # 영업현금흐름 / 순이익 (순이익>0 일 때만)
+    op: "<"
+    threshold: 0.50
+    exclude_sectors: [BANK, INSURANCE, SECURITIES, OTHER_FIN]
+    note: 순이익의 절반도 현금으로 들어오지 않았다
+
+  - id: high_leverage
+    polarity: risk
+    risk_group: 재무구조
+    enabled: true
+    kind: soft_flag                 # 검증 후 hard_guard 로 승격 검토
+    metric: debt_ratio              # (자산 − 자본) / 자본
+    op: ">"
+    threshold: 2.00
+    exclude_sectors: [BANK, INSURANCE, SECURITIES, OTHER_FIN, REAL_ESTATE]
+    note: 부채비율 200% 초과
+
+  - id: low_roic
+    polarity: risk
+    risk_group: 수익성
+    enabled: true
+    kind: soft_flag                 # gate_filter 로 바꾸면 퀄리티 밸류로 전환
+    metric: roic                    # NOPAT / (자본 + 순차입금)
+    op: "<"
+    threshold: 0.05
+    exclude_sectors: [BANK, INSURANCE, SECURITIES, OTHER_FIN]
+    note: 투입자본 대비 수익성이 낮다. 밸류 트랩 후보
+
+  - id: low_roe
+    polarity: risk
+    risk_group: 수익성
+    enabled: true
+    kind: soft_flag
+    metric: roe
+    op: "<"
+    threshold: 0.05
+    exclude_sectors: []
+    note: 자기자본이익률 5% 미만
+
+  - id: treasury_heavy
+    polarity: positive
+    enabled: true
+    kind: soft_flag
+    metric: treasury_ratio          # 자기주식 / 발행주식총수
+    op: ">"
+    threshold: 0.05
+    exclude_sectors: []
+    note: 자사주 5% 초과 보유 — 소각 시 주주가치 상승 여지(가산 신호)
+
+  # ── 주주환원 (DART alotMatter 수집 완료, 2026-08-07) ──
+  - id: high_dividend
+    polarity: positive
+    enabled: true
+    kind: soft_flag
+    metric: div_yield               # 주당현금배당금 / as_of 종가
+    op: ">="
+    threshold: 0.04
+    requires_source: dart_alot_matter
+    note: 배당수익률 4% 이상 — 주주환원 가산 신호
+
+  - id: no_dividend
+    polarity: neutral
+    enabled: true
+    kind: soft_flag
+    metric: div_yield
+    op: "<="
+    threshold: 0.0
+    requires_source: dart_alot_matter
+    note: >
+      무배당. 수집됐는데 배당이 없는 것만 걸린다 — 미수집은 NaN 이라
+      '걸리지 않음'이 아니라 '계산 불가'로 집계된다
+
+  - id: dividend_uncovered
+    polarity: risk
+    risk_group: 배당지속
+    enabled: true
+    kind: soft_flag
+    metric: dividend_fcf_cover      # FCF / (주당배당금 × 배당대상주식수)
+    op: "<"
+    threshold: 1.00
+    requires_source: dart_alot_matter
+    note: >
+      배당이 FCF 를 초과한다. 현금·차입으로 메우는 배당은 유지되기 어렵다 —
+      과거 배당은 미래 배당을 보장하지 않는다
+
+  - id: payout_excessive
+    enabled: true
+    kind: soft_flag
+    polarity: risk
+    risk_group: 배당지속
+    metric: payout_ratio            # (연결)현금배당성향, DART 보고값
+    op: ">"
+    threshold: 0.80
+    requires_source: dart_alot_matter
+    note: >
+      배당성향 80% 초과. 유배당 1,205종목 기준 p50 0.25 / p90 0.74 이라
+      0.8 은 상위 9% 다. 1.0 을 넘으면 이익보다 많이 배당하는 것이라 정의상
+      유지될 수 없다 — 더 엄격히 보려면 threshold 를 1.0 으로 올릴 것.
+      dividend_uncovered 가 현금(FCF) 축이라면 이쪽은 이익 축이다.
+
+  - id: yield_from_price_drop
+    polarity: risk
+    risk_group: 배당지속
+    enabled: true
+    kind: soft_flag
+    expr: div_yield - div_yield_reported
+    op: ">"
+    threshold: 0.02
+    requires_source: dart_alot_matter
+    note: >
+      보고 시점보다 수익률이 2%p 이상 높다 = 그 사이 주가가 빠졌다.
+      고배당의 원인이 배당이 아니라 주가 하락이면 배당 트랩 후보다
+
+  - id: dividend_data_inconsistent
+    polarity: neutral
+    enabled: true
+    kind: soft_flag
+    metric: dividend_total_gap      # |DPS×주식수 − 보고 배당총액| / 보고 배당총액
+    op: ">"
+    threshold: 0.20
+    requires_source: dart_alot_matter
+    note: >
+      DART 자체 수치가 서로 안 맞는다(실측: 화천기공은 배당성향·순이익·DPS 는
+      정합적인데 총액만 1.51배 어긋난다). 데이터 품질 플래그이지 기업 특성이 아니다
+
+  - id: dividend_yield_min
+    polarity: neutral
+    enabled: false                  # 켜면 스크린 구성이 바뀌고 골든셋이 무효화된다
+    kind: gate_filter
+    metric: div_yield
+    direction: higher_better
+    loose: 0.00
+    tight: 0.04
+    requires_source: dart_alot_matter
+    max_missing: 0.05               # 결측이 이보다 많으면 실행 거부(조용한 탈락 방지)
+    note: 배당수익률 게이트. 켜기 전에 --preview 로 구성 변화를 확인할 것
+
+  - id: low_current_ratio
+    polarity: risk
+    risk_group: 재무구조
+    enabled: true
+    kind: soft_flag
+    metric: current_ratio           # 유동자산 / 유동부채
+    op: "<"
+    threshold: 1.00
+    exclude_sectors: [BANK, INSURANCE, SECURITIES, OTHER_FIN]
+    note: >
+      유동비율 100% 미만. 금융업은 유동/비유동 구분을 안 하는 경우가 많아
+      결측이 흔한데, 결측은 '걸리지 않음'이 아니라 '계산 불가'로 집계된다
+
+  # ── 지배구조 (DART hyslrSttus 수집 완료, 2026-08-07) ──
+  - id: owner_stake_low
+    polarity: risk
+    risk_group: 지배구조
+    enabled: true
+    kind: soft_flag
+    metric: owner_stake             # 최대주주 **및 특수관계인 합계** 지분율
+    op: "<"
+    threshold: 0.20
+    requires_source: dart_hyslr_sttus
+    note: >
+      최대주주 및 특수관계인 합계 20% 미만 — 경영권 방어가 취약하다.
+      개인 최대주주 지분만 보면 가족·계열사로 분산 보유한 회사가 취약해 보여
+      합계를 쓴다(실측: 화천기공 본인 17.93% / 합계 48.78%).
+      임계 0.10 은 유니버스 2.0% 에 스크린 0건이라 사실상 죽은 체크였고,
+      0.20 은 11.6%(분포 p10 근처)로 스크린 2종목이 걸린다.
+      단, 낮은 지분율은 activist_target(행동주의) 테마의 전제이기도 하다 —
+      일방적 악재가 아니라 '양방향 신호'로 읽을 것.
+
+# ── 다이제스트 게재 ──────────────────────────────────────────────────
+# tier 는 '테마 배정이 검증됐는가' 한 축이다. 재무 위험을 tier 에 섞으면
+# tier A 정밀도가 분류 품질을 재지 못하게 되므로 게재 축을 따로 둔다.
+# 위험 '범주' 수로 센다 — low_roic 과 low_roe 는 같은 약점을 두 번 말하는 것이라
+# 개수로 세면 한 가지가 둘로 계산된다.
+digest:
+  max_risk_groups_for_body: 2   # 이 값 이상이면 본문에서 빼고 '재무 경고' 절로
+
+ranking:
+  method: composite_z
+  weights: {per: -0.40, pbr: -0.30, fcf_yield: 0.30}
+
+# 통과시키되 다이제스트에 표기하고 LLM 입력에도 전달
+soft_flags_report_only:
+  - oneoff_profit_suspect
+  - per_op_divergence
+  - financial_sector
+  - holding_company
+  - earnings_volatility_high
+  - cfs_missing_used_ofs

@@ -1,0 +1,110 @@
+# KIND 업종명(KSIC 소분류, 159종) → 내부 섹터 코드
+#
+# KRX 데이터포털이 로그인을 요구하게 되면서 KRX 대분류 업종을 쓸 수 없다.
+# KIND corpList 의 업종이 유일한 무인증 소스이고, 대분류보다 훨씬 세밀하다
+# (전동기·발전기·전기변환장치 제조업이 별도 항목이라 AI 전력기기 테마 판별에 오히려 유리).
+#
+# 규칙은 순서대로 평가되며 먼저 매칭되는 것이 이긴다. 구체적인 것을 위에 둔다.
+# 매칭 실패는 조용히 넘기지 않고 sector_code=NULL + unmapped_industry 플래그로 드러낸다.
+version: 1
+source: "kind.krx.co.kr/corpgeneral/corpList.do"
+
+rules:
+  # ── 금융 (가장 먼저: '금융'이 다른 규칙에 잡히지 않도록) ──────────
+  - {pattern: "^은행 및 저축기관",            code: BANK}
+  - {pattern: "재 ?보험업|^보험업|보험 및 연금", code: INSURANCE}
+  - {pattern: "^금융 지원 서비스업",           code: SECURITIES}
+  - {pattern: "신탁업|집합투자",               code: OTHER_FIN}
+  - {pattern: "^기타 금융업",                  code: OTHER_FIN}
+
+  # ── 부동산 ────────────────────────────────────────────────────
+  - {pattern: "부동산",                        code: REAL_ESTATE}
+
+  # ── 교육 ──────────────────────────────────────────────────────
+  - {pattern: "교습 ?학원|교육기관|교육지원",   code: EDUCATION}
+
+  # ── IT / 통신 / 미디어 ────────────────────────────────────────
+  - {pattern: "소프트웨어 개발",                code: IT_SERVICES}
+  - {pattern: "컴퓨터 프로그래밍|시스템 통합",   code: IT_SERVICES}
+  - {pattern: "자료처리|호스팅|포털",           code: IT_SERVICES}
+  - {pattern: "기타 정보 서비스",               code: IT_SERVICES}
+  - {pattern: "전기 통신업",                    code: TELECOM}
+  - {pattern: "방송프로그램|텔레비전 방송|영화, ?비디오", code: MEDIA_ENT}
+  - {pattern: "오디오물|음반|녹음",             code: MEDIA_ENT}
+  - {pattern: "^광고업",                        code: MEDIA_ENT}
+  - {pattern: "창작 및 예술",                   code: MEDIA_ENT}
+  - {pattern: "출판업",                         code: MEDIA_ENT}
+
+  # ── 반도체 / 전자 ─────────────────────────────────────────────
+  - {pattern: "반도체 제조",                    code: SEMI}
+  - {pattern: "전자부품 제조",                  code: ELECTRONIC_COMP}
+  - {pattern: "통신 및 방송 장비",              code: ELECTRONIC_COMP}
+  - {pattern: "영상 및 음향기기",               code: ELECTRONIC_COMP}
+  - {pattern: "컴퓨터 및 주변장치",             code: ELECTRONIC_COMP}
+  - {pattern: "가정용 기기 제조",               code: ELECTRONIC_COMP}
+  - {pattern: "일차전지|이차전지",              code: ELECTRONIC_COMP}
+  - {pattern: "측정, ?시험|정밀기기",           code: ELECTRONIC_COMP}
+  - {pattern: "사진장비|광학기기",              code: ELECTRONIC_COMP}
+  - {pattern: "마그네틱|광학 매체|기록매체",     code: ELECTRONIC_COMP}
+
+  # ── 전기장비 (AI 전력기기 테마의 모집단) ──────────────────────
+  - {pattern: "전동기, ?발전기|전기 변환|공급 · 제어|공급.*제어 장치", code: ELEC_EQUIP}
+  - {pattern: "절연선|케이블 제조",             code: ELEC_EQUIP}
+  - {pattern: "전구 및 조명",                   code: ELEC_EQUIP}
+  - {pattern: "기타 전기장비",                  code: ELEC_EQUIP}
+
+  # ── 제약 · 바이오 · 의료 ──────────────────────────────────────
+  - {pattern: "의약품 제조|의약물질|의약 관련제품", code: PHARMA_BIO}
+  - {pattern: "자연과학 및 공학 연구개발",       code: PHARMA_BIO}
+  - {pattern: "의료용 기기",                     code: HEALTHCARE_SVC}
+
+  # ── 운송장비 ──────────────────────────────────────────────────
+  - {pattern: "선박 및 보트",                    code: SHIPBUILD}
+  - {pattern: "항공기|우주선|무기 및 총포탄",     code: AEROSPACE_DEFENSE}
+  - {pattern: "자동차 신품 부품|자동차용 엔진|자동차 차체|자동차 재제조", code: AUTO}
+  - {pattern: "자동차 판매|자동차 부품 및 내장품 판매", code: RETAIL}
+  - {pattern: "그외 기타 운송장비",              code: MACHINERY}
+
+  # ── 기계 ──────────────────────────────────────────────────────
+  - {pattern: "목적용 기계 제조",                code: MACHINERY}
+  - {pattern: "산업용 기계 및 장비 임대",         code: MACHINERY}
+
+  # ── 소재 ──────────────────────────────────────────────────────
+  - {pattern: "석유 정제품|연료 소매",            code: ENERGY}
+  - {pattern: "전기업|가스 제조 및 배관|증기, ?냉|공기조절 공급", code: UTILITIES}
+  - {pattern: "폐기물 처리|원료 재생",            code: UTILITIES}
+  - {pattern: "철강 제조|비철금속 제조|금속 가공제품|구조용 금속제품|금속 주조", code: STEEL_METAL}
+  - {pattern: "시멘트|비금속 광물제품|요업제품|유리 및 유리제품", code: NONMETAL_MIN}
+  - {pattern: "펄프|종이|골판지|인쇄 및 인쇄관련", code: PAPER_WOOD}
+  - {pattern: "제재 및 목재|나무제품|가구 제조",   code: PAPER_WOOD}
+  - {pattern: "화학물질 제조|화학제품 제조|화학섬유|합성고무|플라스틱|고무제품|비료, ?농약", code: CHEM}
+
+  # ── 섬유 · 의복 ───────────────────────────────────────────────
+  - {pattern: "의복 제조|직물|섬유제품|방적|가죽, ?가방|신발|의복 액세서리|귀금속 및 장신용품|운동 및 경기용구", code: TEXTILE_APPAREL}
+
+  # ── 음식료 ────────────────────────────────────────────────────
+  - {pattern: "식품 제조|음료|얼음 제조|사료|도축|곡물가공품|수산물 가공|과실, ?채소|유지 및 낙농|떡, ?빵|조리식품|담배 제조|작물 재배|어로 어업|음식점업", code: FOOD_BEV}
+
+  # ── 건설 ──────────────────────────────────────────────────────
+  - {pattern: "건설업|공사업|건축기술|엔지니어링|시설물 축조", code: CONSTRUCTION}
+
+  # ── 운수 · 물류 ───────────────────────────────────────────────
+  - {pattern: "운송업|운송관련 서비스|운송장비 임대", code: TRANSPORT_LOGISTICS}
+
+  # ── 도매 · 소매 ───────────────────────────────────────────────
+  - {pattern: "도매업|상품 중개",                 code: TRADING_DISTRIB}
+  - {pattern: "소매업",                           code: RETAIL}
+
+  # ── 여행 · 레저 ───────────────────────────────────────────────
+  - {pattern: "여행사|숙박시설|유원지|오락관련|스포츠 서비스", code: LEISURE_TRAVEL}
+
+  # ── 사업 · 전문 서비스 (마지막 폴백. '기타 ~ 서비스업' 다수) ───
+  - {pattern: "경영 컨설팅|회사 본부",            code: BUSINESS_SVC}
+  - {pattern: "전문, ?과학 및 기술 서비스|과학기술 서비스|전문 서비스|사업지원 서비스|사업시설|시장조사|여론조사|경비, ?경호|전문디자인|수리업|개인 서비스|가정용품 임대", code: BUSINESS_SVC}
+
+  # ── 그 밖의 제조 ──────────────────────────────────────────────
+  - {pattern: "그외 기타 제품 제조|악기 제조",    code: OTHER_MFG}
+
+# 지주회사는 KSIC 상 '기타 금융업' / '회사 본부 및 경영 컨설팅'에 섞여 있어
+# 업종만으로 판별되지 않는다. 상호 기반 휴리스틱으로 보조하고, 휴리스틱임을 남긴다.
+holding_name_patterns: ["홀딩스$", "지주$", "^HD현대$", "그룹$"]

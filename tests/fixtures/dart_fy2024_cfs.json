@@ -1,0 +1,82 @@
+{
+  "status": "000",
+  "message": "정상",
+  "list": [
+    {
+      "rcept_no": "20250320000123", "reprt_code": "11011", "bsns_year": "2024",
+      "corp_code": "00126380", "sj_div": "IS", "sj_nm": "손익계산서",
+      "account_id": "ifrs-full_Revenue", "account_nm": "매출액",
+      "thstrm_nm": "제 56 기", "thstrm_amount": "2,000,000,000,000",
+      "frmtrm_nm": "제 55 기", "frmtrm_amount": "1,900,000,000,000",
+      "currency": "KRW", "ord": "1"
+    },
+    {
+      "rcept_no": "20250320000123", "reprt_code": "11011", "bsns_year": "2024",
+      "corp_code": "00126380", "sj_div": "IS", "sj_nm": "손익계산서",
+      "account_id": "dart_OperatingIncomeLoss", "account_nm": "영업이익",
+      "thstrm_nm": "제 56 기", "thstrm_amount": "120,000,000,000",
+      "frmtrm_nm": "제 55 기", "frmtrm_amount": "110,000,000,000",
+      "currency": "KRW", "ord": "2"
+    },
+    {
+      "rcept_no": "20250320000123", "reprt_code": "11011", "bsns_year": "2024",
+      "corp_code": "00126380", "sj_div": "IS", "sj_nm": "손익계산서",
+      "account_id": "ifrs-full_ProfitLoss", "account_nm": "당기순이익",
+      "thstrm_nm": "제 56 기", "thstrm_amount": "115,000,000,000",
+      "frmtrm_nm": "제 55 기", "frmtrm_amount": "92,000,000,000",
+      "currency": "KRW", "ord": "3"
+    },
+    {
+      "rcept_no": "20250320000123", "reprt_code": "11011", "bsns_year": "2024",
+      "corp_code": "00126380", "sj_div": "IS", "sj_nm": "손익계산서",
+      "account_id": "ifrs-full_ProfitLossAttributableToOwnersOfParent",
+      "account_nm": "지배기업 소유주지분 순이익",
+      "thstrm_nm": "제 56 기", "thstrm_amount": "100,000,000,000",
+      "frmtrm_nm": "제 55 기", "frmtrm_amount": "80,000,000,000",
+      "currency": "KRW", "ord": "4"
+    },
+    {
+      "rcept_no": "20250320000123", "reprt_code": "11011", "bsns_year": "2024",
+      "corp_code": "00126380", "sj_div": "BS", "sj_nm": "재무상태표",
+      "account_id": "ifrs-full_Equity", "account_nm": "자본총계",
+      "thstrm_nm": "제 56 기말", "thstrm_amount": "1,150,000,000,000",
+      "frmtrm_nm": "제 55 기말", "frmtrm_amount": "1,090,000,000,000",
+      "currency": "KRW", "ord": "5"
+    },
+    {
+      "rcept_no": "20250320000123", "reprt_code": "11011", "bsns_year": "2024",
+      "corp_code": "00126380", "sj_div": "BS", "sj_nm": "재무상태표",
+      "account_id": "ifrs-full_EquityAttributableToOwnersOfParent",
+      "account_nm": "지배기업 소유주지분",
+      "thstrm_nm": "제 56 기말", "thstrm_amount": "1,000,000,000,000",
+      "frmtrm_nm": "제 55 기말", "frmtrm_amount": "950,000,000,000",
+      "currency": "KRW", "ord": "6"
+    },
+    {
+      "rcept_no": "20250320000123", "reprt_code": "11011", "bsns_year": "2024",
+      "corp_code": "00126380", "sj_div": "BS", "sj_nm": "재무상태표",
+      "account_id": "ifrs-full_CashAndCashEquivalents", "account_nm": "현금및현금성자산",
+      "thstrm_nm": "제 56 기말", "thstrm_amount": "300,000,000,000",
+      "frmtrm_nm": "제 55 기말", "frmtrm_amount": "280,000,000,000",
+      "currency": "KRW", "ord": "7"
+    },
+    {
+      "rcept_no": "20250320000123", "reprt_code": "11011", "bsns_year": "2024",
+      "corp_code": "00126380", "sj_div": "CF", "sj_nm": "현금흐름표",
+      "account_id": "ifrs-full_CashFlowsFromUsedInOperatingActivities",
+      "account_nm": "영업활동현금흐름",
+      "thstrm_nm": "제 56 기", "thstrm_amount": "150,000,000,000",
+      "frmtrm_nm": "제 55 기", "frmtrm_amount": "140,000,000,000",
+      "currency": "KRW", "ord": "8"
+    },
+    {
+      "rcept_no": "20250320000123", "reprt_code": "11011", "bsns_year": "2024",
+      "corp_code": "00126380", "sj_div": "CF", "sj_nm": "현금흐름표",
+      "account_id": "ifrs-full_PurchaseOfPropertyPlantAndEquipment",
+      "account_nm": "유형자산의 취득",
+      "thstrm_nm": "제 56 기", "thstrm_amount": "-50,000,000,000",
+      "frmtrm_nm": "제 55 기", "frmtrm_amount": "-45,000,000,000",
+      "currency": "KRW", "ord": "9"
+    }
+  ]
+}

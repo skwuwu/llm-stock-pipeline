@@ -1,0 +1,25 @@
+{
+  "_note": "정정공시. 2025-08-01 접수, 원본 20250320000123 의 지배주주 순이익을 1000억→900억으로 정정.",
+  "status": "000",
+  "message": "정상",
+  "list": [
+    {
+      "rcept_no": "20250801000789", "reprt_code": "11011", "bsns_year": "2024",
+      "corp_code": "00126380", "sj_div": "IS", "sj_nm": "손익계산서",
+      "account_id": "ifrs-full_ProfitLossAttributableToOwnersOfParent",
+      "account_nm": "지배기업 소유주지분 순이익",
+      "thstrm_nm": "제 56 기", "thstrm_amount": "90,000,000,000",
+      "frmtrm_nm": "제 55 기", "frmtrm_amount": "80,000,000,000",
+      "currency": "KRW", "ord": "4"
+    },
+    {
+      "rcept_no": "20250801000789", "reprt_code": "11011", "bsns_year": "2024",
+      "corp_code": "00126380", "sj_div": "BS", "sj_nm": "재무상태표",
+      "account_id": "ifrs-full_EquityAttributableToOwnersOfParent",
+      "account_nm": "지배기업 소유주지분",
+      "thstrm_nm": "제 56 기말", "thstrm_amount": "990,000,000,000",
+      "frmtrm_nm": "제 55 기말", "frmtrm_amount": "950,000,000,000",
+      "currency": "KRW", "ord": "6"
+    }
+  ]
+}
