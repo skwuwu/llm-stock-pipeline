@@ -118,6 +118,19 @@ python -m pipeline.cli report    --as-of 2026-08-06 --screen theme_hunt
 python -m pipeline.cli ingest-disclosures --lookback 7    # 매일 돌릴 때
 ```
 
+### 상장폐지 이력
+
+```bash
+python -m pipeline.cli ingest-delisting                       # 전체 갱신 (FDR)
+python -m pipeline.cli survivorship --as-of 2026-08-06        # 편향 크기
+```
+
+**월 1회면 충분하다.** 폐지는 자주 일어나지 않고(주권 기준 연 100~200건)
+FDR 이 전체 목록을 한 번에 준다.
+
+`screen` 은 폐지 이력이 **없으면 경고**한다 — 편향을 측정조차 못 하는 상태를
+조용히 넘기지 않는다.
+
 ---
 
 ## 비용

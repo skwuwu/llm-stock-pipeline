@@ -555,6 +555,27 @@ def cmd_screen(a) -> int:
     if pending:
         print(f"경고: 미강제 가드 {pending} — 데이터 소스가 없어 적용되지 않는다.",
               file=sys.stderr)
+
+    # ── 생존편향 ──────────────────────────────────────────────────
+    # 유니버스는 KIND **현재** 상장사 목록에서 온다. 과거 as_of 로 돌리면
+    # 그때 상장돼 있다가 이후 폐지된 종목이 통째로 빠지고, 살아남은 것만
+    # 남아 성과가 부풀려진다. 없앨 수 없으면 **크기를 보이게** 한다.
+    surv_rep = None
+    _s = _store()
+    try:
+        if _s.con.execute("SELECT count(*) FROM delistings").fetchone()[0]:
+            surv_rep = _s.survivorship_report(a.as_of)
+    finally:
+        _s.close()
+    if surv_rep is None:
+        print("경고: 폐지 이력이 없어 생존편향을 측정할 수 없다 — "
+              "`ingest-delisting` 을 실행할 것.", file=sys.stderr)
+    elif surv_rep["delisted_since"]:
+        by = surv_rep["delisted_by_outcome"]
+        print(f"⚠ 생존편향: {a.as_of} 에 상장돼 있던 "
+              f"{surv_rep['delisted_since']}종목이 이후 폐지됐고 유니버스에 없다 "
+              f"({by}). 이 시점 결과는 생존자 편향을 갖는다 — "
+              f"`survivorship --as-of {a.as_of}` 참조.", file=sys.stderr)
     all_guards = list(cfg["universe"]["exclude_flags"]) + enabled_hard_guards(specs)
     guard_hits = guard_effectiveness(m, all_guards)
     eligible, why = apply_hard_guards(
@@ -668,6 +689,58 @@ def cmd_ingest_disclosures(a) -> int:
     print(f"\n조회 {total_seen}건 | 신규 {total_new}건 | 누적 {n}건")
     print(by.to_string(index=False))
     print(f"DART 잔여 호출 {ing.client.remaining_calls():,}")
+    return 0
+
+
+def cmd_ingest_delisting(a) -> int:
+    """상장폐지 이력 수집 — 생존편향의 해독제. FDR KRX-DELISTING."""
+    from pipeline.ingest.delisting import coverage_report, fetch_delistings
+
+    df = fetch_delistings(stock_only=not a.include_all_types)
+    if df.empty:
+        print("폐지 이력을 받지 못했다 — FDR 소스를 확인할 것.", file=sys.stderr)
+        return 1
+    s = _store()
+    try:
+        n = s.upsert_delistings(df)
+        total = s.con.execute("SELECT count(*) FROM delistings").fetchone()[0]
+    finally:
+        s.close()
+
+    rep = coverage_report(df, since=date(2020, 1, 1))
+    print(f"폐지 이력 {n:,}건 적재 (누적 {total:,})")
+    print(f"  기간 {df['delisting_date'].min()} ~ {df['delisting_date'].max()}")
+    print(f"\n2020년 이후 {rep['rows']}건 결과별:")
+    for k, v in sorted(rep["by_outcome"].items(), key=lambda x: -x[1]):
+        print(f"    {k:<16}{v:>5}")
+    # **분류 불가를 실패로 밀어넣지 않는다.** 모르는 것을 전손으로 세면
+    # 백테스트가 반대 방향으로 틀린다. 대신 수를 보여준다.
+    if rep["unclassified"]:
+        print(f"\n  ⚠ 분류 불가 {rep['unclassified']}건 — failed 로 세지 않는다. "
+              f"ingest/delisting.py 의 사유 패턴을 늘릴 것")
+    return 0
+
+
+def cmd_survivorship(a) -> int:
+    """생존편향 크기 측정. 없앨 수 없으면 재기라도 해야 한다."""
+    s = _store()
+    try:
+        if s.con.execute("SELECT count(*) FROM delistings").fetchone()[0] == 0:
+            print("폐지 이력이 없다 — ingest-delisting 을 먼저 실행할 것.",
+                  file=sys.stderr)
+            return 1
+        rep = s.survivorship_report(a.as_of)
+    finally:
+        s.close()
+    print(json.dumps(rep, ensure_ascii=False, indent=2))
+    if rep["missing_financials"]:
+        print(f"\n{a.as_of} 기준 상장 {rep['listed_then']}종목 중 "
+              f"{rep['missing_financials']}종목의 재무가 없다 "
+              f"(커버리지 {rep['coverage']:.1%}).")
+        print("이 종목들은 스크린에서 조용히 빠진다 — 그 시점 백테스트는 "
+              "생존자 편향을 갖는다.")
+        print("보완: 폐지 종목의 corp_code 는 DART corpCode 에 남아 있으므로 "
+              "`ingest-dart --tickers <...>` 로 소급 수집이 가능하다.")
     return 0
 
 
@@ -1235,6 +1308,16 @@ def main() -> int:
                      help="한 요청의 기간. 길면 페이지가 폭주한다")
     idc.add_argument("--refresh", action="store_true")
     idc.set_defaults(fn=cmd_ingest_disclosures)
+
+    idl = sub.add_parser("ingest-delisting",
+                         help="상장폐지 이력 (생존편향 해독제). FDR KRX-DELISTING")
+    idl.add_argument("--include-all-types", action="store_true",
+                     help="스팩·수익증권·신주인수권까지. 기본은 주권만")
+    idl.set_defaults(fn=cmd_ingest_delisting)
+
+    sv = sub.add_parser("survivorship", help="생존편향 크기 측정")
+    sv.add_argument("--as-of", type=_iso, required=True)
+    sv.set_defaults(fn=cmd_survivorship)
 
     sub.add_parser("status").set_defaults(fn=cmd_status)
 

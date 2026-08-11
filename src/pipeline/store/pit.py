@@ -131,10 +131,35 @@ CREATE TABLE IF NOT EXISTS disclosures (
     PRIMARY KEY (rcept_no)
 );
 
+-- 상장폐지 이력 — **생존편향의 유일한 해독제.**
+--
+-- KIND 상장법인목록은 현재 상장사만 준다. 폐지된 회사는 목록에서 사라지므로
+-- security_master 에도 없고, 과거 시점 스크린은 '그때 있었지만 지금 없는'
+-- 회사를 보지 못한다. 그 결과 백테스트 수익률이 구조적으로 부풀려진다.
+--
+-- outcome 이 핵심이다. 합병 소멸(주주가 대가를 받음)과 감사의견 거절
+-- (사실상 전손)을 같은 '폐지'로 묶으면 편향을 고치려다 반대 편향을 만든다.
+CREATE TABLE IF NOT EXISTS delistings (
+    ticker        VARCHAR NOT NULL,
+    name          VARCHAR,
+    market        VARCHAR,
+    secu_group    VARCHAR,
+    listing_date  DATE,
+    delisting_date DATE   NOT NULL,
+    reason        VARCHAR,
+    outcome       VARCHAR NOT NULL,   -- merged | failed | spac_dissolved | other
+    to_ticker     VARCHAR,            -- 승계 종목. FDR 이 대부분 비워 보낸다
+    to_name       VARCHAR,
+    snapshot_date DATE    NOT NULL,   -- 이 목록도 시점 스냅샷이다
+    PRIMARY KEY (ticker, delisting_date)
+);
+
 CREATE INDEX IF NOT EXISTS idx_facts_lookup
     ON facts_financial (ticker, element, available_at);
 CREATE INDEX IF NOT EXISTS idx_disc_lookup
     ON disclosures (ticker, rcept_dt);
+CREATE INDEX IF NOT EXISTS idx_delist_date
+    ON delistings (delisting_date);
 """
 
 
@@ -303,6 +328,78 @@ class PitStore:
         return self.con.execute(
             f"SELECT * FROM disclosures WHERE {' AND '.join(w)} ORDER BY rcept_dt DESC",
             params).df()
+
+    # ── 상장폐지 · 생존편향 ──────────────────────────────────────
+    def upsert_delistings(self, df: pd.DataFrame) -> int:
+        if df.empty:
+            return 0
+        self.con.register("_dl", df)
+        self.con.execute("""
+            DELETE FROM delistings
+            WHERE (ticker, delisting_date) IN
+                  (SELECT ticker, delisting_date FROM _dl)
+        """)
+        self.con.execute("INSERT INTO delistings BY NAME SELECT * FROM _dl")
+        self.con.unregister("_dl")
+        return len(df)
+
+    def listed_asof(self, as_of: date) -> pd.DataFrame:
+        """**그 시점에 상장돼 있던** 종목. 생존편향을 막는 유니버스 정의.
+
+        두 갈래를 합친다:
+          · 지금도 상장 중이고 그때 이미 상장돼 있던 종목
+          · 그때는 상장 중이었으나 **그 뒤에 폐지된** 종목  ← 이게 빠져 있었다
+
+        security_master 만 쓰면 두 번째가 통째로 빠진다. 과거 as_of 로
+        스크린을 돌리면 '그때 있었지만 지금 없는' 회사를 못 보게 되고,
+        살아남은 것만 남아 성과가 부풀려진다.
+        """
+        return self.con.execute("""
+            WITH alive AS (
+                SELECT m.ticker, m.name, m.market, m.sector_code,
+                       m.listing_date, NULL::DATE AS delisting_date,
+                       NULL::VARCHAR AS outcome, FALSE AS delisted
+                FROM security_master m
+                WHERE m.listing_date IS NULL OR m.listing_date <= ?
+            ),
+            gone AS (
+                SELECT d.ticker, d.name, d.market, NULL::VARCHAR AS sector_code,
+                       d.listing_date, d.delisting_date, d.outcome, TRUE AS delisted
+                FROM delistings d
+                WHERE d.delisting_date > ?
+                  AND (d.listing_date IS NULL OR d.listing_date <= ?)
+                  AND d.ticker NOT IN (SELECT ticker FROM security_master)
+            )
+            SELECT * FROM alive UNION ALL SELECT * FROM gone
+        """, [as_of, as_of, as_of]).df()
+
+    def survivorship_report(self, as_of: date) -> dict:
+        """편향의 **크기**를 수치로. 없앨 수 없으면 재기라도 해야 한다.
+
+        `missing_financials` 가 핵심이다 — 그때 상장돼 있었지만 우리가 재무를
+        못 받은 종목 수다. 이 값이 0 이 아니면 그 시점 스크린은 생존자 편향을
+        갖는다. 조용히 넘어가지 않도록 screen 이 이걸 읽어 경고한다.
+        """
+        u = self.listed_asof(as_of)
+        tickers = u["ticker"].tolist()
+        have = set()
+        if tickers:
+            have = {r[0] for r in self.con.execute(
+                "SELECT DISTINCT ticker FROM facts_financial "
+                "WHERE available_at <= ? AND ticker = ANY(?)",
+                [as_of, tickers]).fetchall()}
+        gone = u[u["delisted"]]
+        return {
+            "as_of": str(as_of),
+            "listed_then": len(u),
+            "still_listed": int((~u["delisted"]).sum()),
+            "delisted_since": len(gone),
+            "delisted_by_outcome": gone["outcome"].value_counts().to_dict(),
+            "with_financials": len(have),
+            # 이 종목들이 스크린에서 조용히 빠진다
+            "missing_financials": len(u) - len(have),
+            "coverage": round(len(have) / len(u), 4) if len(u) else 0.0,
+        }
 
     def revision_history(self, ticker: str, element: str) -> pd.DataFrame:
         """같은 회계기간에 대해 값이 어떻게 정정돼 왔는지. 감사용."""
