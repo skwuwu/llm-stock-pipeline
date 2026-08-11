@@ -1274,12 +1274,24 @@ def cmd_report(a) -> int:
     # 촉매는 선택이다 — `catalysts` 를 안 돌린 스크린도 다이제스트는 나와야 한다.
     cp = d / "catalysts.parquet"
     cat = pd.read_parquet(cp) if cp.exists() else None
+    # 오분류율·생존편향도 리포트에 싣는다. 둘 다 없으면 그냥 생략된다 —
+    # golden 을 안 돌린 스크린(theme_hunt)도 다이제스트는 나와야 한다.
+    gp = vd / "golden_metrics.json"
+    gold_m = _json.loads(gp.read_text(encoding="utf-8")) if gp.exists() else None
+    # 이름 주의: surv 는 위에서 survivors DataFrame 으로 이미 쓰였다.
+    surv_rep = None
+    _st = _store()
+    try:
+        if _st.con.execute("SELECT count(*) FROM delistings").fetchone()[0]:
+            surv_rep = _st.survivorship_report(a.as_of)
+    finally:
+        _st.close()
     md = render(a.as_of, surv, verdicts, taxonomy, funnel, quality, vmetrics,
                 checks=screen_manifest.get("checks"),
                 max_risk_groups=(screen_cfg.get("digest") or {})
                 .get("max_risk_groups_for_body", 2),
                 screen_name=f"{screen_cfg.get('name') or p.screen} 스크린",
-                catalysts=cat)
+                catalysts=cat, golden=gold_m, survivorship=surv_rep)
     out = p.out_dir(a.as_of)
     out.mkdir(parents=True, exist_ok=True)
     (out / "digest.md").write_text(md, encoding="utf-8")

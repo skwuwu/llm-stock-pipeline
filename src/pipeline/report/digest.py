@@ -64,7 +64,9 @@ def render(as_of: date, survivors: pd.DataFrame, verdicts: pd.DataFrame,
            verify_metrics: dict, checks: dict | None = None,
            max_risk_groups: int = 2, screen_name: str = "스크린",
            catalysts: pd.DataFrame | None = None,
-           min_catalyst_confidence: int = 4) -> str:
+           min_catalyst_confidence: int = 4,
+           golden: dict | None = None,
+           survivorship: dict | None = None) -> str:
     names = {t["id"]: t["name_ko"] for t in taxonomy["themes"]}
     # ── 촉매 ──────────────────────────────────────────────────────
     # **만료된 것은 본문에서 빼되 없었던 일로 만들지 않는다** — 부록에 남긴다.
@@ -140,6 +142,26 @@ def render(as_of: date, survivors: pd.DataFrame, verdicts: pd.DataFrame,
                  ", ".join(f"{k} {v}" for k, v in sorted(se.items(), key=lambda x: -x[1])))
     hr = verify_metrics.get("hallucinated_citation_rate", 0)
     L.append(f"- 인용 검증 실패율 {hr:.1%} — 원문에 없는 근거를 댄 배정 비율")
+    # **신뢰도 지표를 리포트 안에 둔다.** 별도 파일에만 있으면 다이제스트를
+    # 읽는 사람은 이 문서가 얼마나 맞는지 모른 채 종목만 본다.
+    if golden:
+        runs = golden.get("runs") or []
+        base = next((r for r in runs if r.get("reproducible")), None)
+        if base:
+            L.append(f"- **오분류율 {base['misclassification_rate']:.1%}** "
+                     f"(골든셋 {golden.get('golden_stocks', '?')}종목, "
+                     f"재현 가능 기준: {base['label'].strip()}). "
+                     f"라벨은 사람 검수 전이다")
+    if survivorship:
+        sv = survivorship
+        if sv.get("delisted_since"):
+            L.append(f"- ⚠ **생존편향**: {sv['as_of']} 에 상장돼 있던 "
+                     f"{sv['delisted_since']}종목이 이후 폐지돼 유니버스에 없다 "
+                     f"({sv['delisted_by_outcome']}). 이 시점 결과는 성과 측정에 "
+                     f"쓸 수 없다")
+        else:
+            L.append(f"- 생존편향 없음 — {sv['as_of']} 상장 {sv['listed_then']}종목 "
+                     f"중 이후 폐지 0, 재무 커버리지 {sv['coverage']:.1%}")
     if not cat.empty:
         npos = int((cat_live["polarity"] == "positive").sum()) if not cat_live.empty else 0
         nneg = int((cat_live["polarity"] == "negative").sum()) if not cat_live.empty else 0
@@ -294,11 +316,17 @@ def render(as_of: date, survivors: pd.DataFrame, verdicts: pd.DataFrame,
     L.append("---")
     L.append("_이 문서는 리서치 아이디어 생성물이며 매수 신호가 아니다. "
              "LLM 논거는 사업 내용 추출 결과이고, 원문 인용 검증을 통과한 것만 실린다._")
-    # 어느 종목이 어느 테마의 core 인가는 재실행해도 같다(실측 100%).
-    # 강등은 세그먼트 이름 매칭에 기대는 부분이 남아 재측정 전이다.
+    # **수치를 하드코딩하지 않는다.** 한때 '재실행 시 100% 일치'라고 박아뒀는데,
+    # 표본을 늘려 96%(46/48)로 정정한 뒤에도 이 문구만 남아 리포트가 거짓말을
+    # 하고 있었다. 상수를 읽어 쓰고, 테스트가 둘의 일치를 강제한다.
+    from pipeline.verify.golden import REPRODUCIBILITY as _RP
     L.append("")
-    L.append("_※ core 배정은 재실행 시 100% 일치한다(실측 n=24). 다만 매출비중 "
-             "강등은 LLM 이 고른 세그먼트 이름에 기대는 부분이 남아 재측정 전이다 "
-             "— `scripts/determinism_probe.py`. **매출비중 '미확인'은 배정이 "
-             "틀렸다는 뜻이 아니라 회사가 세그먼트를 공시하지 않았다는 뜻이다.**_")
+    L.append(f"_※ core 배정 재실행 일치율 **{_RP['core_agreement']:.0%}**"
+             f"(누적 n={_RP['n_stocks']}, 표본 {_RP['samples']}회) — "
+             f"이보다 작은 차이는 잡음이다. 매출비중 강등은 LLM 이 고른 "
+             f"세그먼트 이름에 기대는 부분이 남아 더 흔들린다"
+             f"(판정 일치 {_RP['verdict_agreement']:.0%}). 재측정 `{_RP['tool']}`._")
+    L.append("")
+    L.append("_※ 매출비중 '미확인'은 배정이 틀렸다는 뜻이 아니라 회사가 "
+             "세그먼트를 공시하지 않았다는 뜻이다._")
     return "\n".join(L)

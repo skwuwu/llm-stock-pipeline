@@ -140,3 +140,39 @@ def test_llm_boundary_is_documented():
     for k in METRIC_KEYS:
         assert k in t, f"README 의 METRIC_KEYS 목록에 {k} 가 없다"
     assert "per" not in METRIC_KEYS and "close" not in METRIC_KEYS
+
+
+# ── 리포트 안의 수치가 코드와 어긋나지 않는가 ────────────────────────
+def test_digest_does_not_hardcode_reproducibility():
+    """실측: '재실행 시 100% 일치'를 각주에 박아뒀다가, 표본을 늘려 96% 로
+    정정한 뒤에도 그 문구만 남아 **리포트가 거짓말을 하고 있었다.**
+    상수를 읽게 하고 하드코딩을 금지한다."""
+    src = (REPO / "src/pipeline/report/digest.py").read_text(encoding="utf-8")
+    assert "REPRODUCIBILITY" in src, "재현성 수치를 상수에서 읽지 않는다"
+    # 주석은 '한때 100% 라고 박아뒀다'는 이력을 남기므로 검사 대상이 아니다.
+    # 실제로 출력되는 코드 줄만 본다.
+    code = [ln for ln in src.splitlines() if not ln.lstrip().startswith("#")]
+    for ln in code:
+        if "일치율" in ln or "일치한다" in ln:
+            assert re.search(r"_RP\[|REPRODUCIBILITY\[", ln), \
+                f"재현성 수치가 하드코딩됐다: {ln.strip()[:70]}"
+
+
+def test_digest_carries_reliability_metrics():
+    """다이제스트만 읽는 사람도 이 문서가 얼마나 맞는지 알아야 한다.
+    별도 파일에만 두면 종목만 보고 신뢰도는 안 본다."""
+    src = (REPO / "src/pipeline/report/digest.py").read_text(encoding="utf-8")
+    for must in ("오분류율", "생존편향", "인용 검증 실패율"):
+        assert must in src, f"다이제스트에 {must} 가 없다"
+
+
+@pytest.mark.parametrize("screen", ["deep_value", "garp", "quality_fcf"])
+def test_emitted_digest_shows_misclassification(screen):
+    p = REPO / f"data/out/{screen}/2026-08-06/digest.md"
+    if not p.exists():
+        pytest.skip("다이제스트 없음")
+    t = _t(p)
+    assert "오분류율" in t, f"{screen} 다이제스트에 오분류율이 없다"
+    assert "생존편향" in t, f"{screen} 다이제스트에 생존편향이 없다"
+    from pipeline.verify.golden import REPRODUCIBILITY as RP
+    assert f"{RP['core_agreement']:.0%}" in t, "재현성 수치가 상수와 다르다"
